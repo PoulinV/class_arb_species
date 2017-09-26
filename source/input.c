@@ -1142,7 +1142,22 @@ int input_read_parameters(
                "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",pba->scf_tuning_index,pba->scf_parameters_size);
     /** - Assign shooting parameter */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
+    class_call(parser_read_string(pfc,"scf_potential",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+     if (flag1 == _TRUE_) {
 
+       flag2=_FALSE_;
+       if (strcmp(string1,"pol_times_exp") == 0) {
+         pba->scf_potential = pol_times_exp;
+       }
+       if (strcmp(string1,"double_exp") == 0) {
+         pba->scf_potential = double_exp;
+       }
+   class_test(flag2==_FALSE_,
+                  errmsg,
+                  "could not identify scf_potential value, check that it is one of 'pol_times_exp','double_exp'.");
+     }
     scf_lambda = pba->scf_parameters[0];
     if ((fabs(scf_lambda) <3.)&&(pba->background_verbose>1))
       printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
@@ -3448,6 +3463,7 @@ int input_default_params(
   pba->scf_parameters = NULL;
   pba->scf_parameters_size = 0;
   pba->scf_tuning_index = 0;
+  pba->scf_potential = pol_times_exp;
   //MZ: initial conditions are as multiplicative factors of the radiation attractor values
   pba->phi_ini_scf = 1;
   pba->phi_prime_ini_scf = 1;

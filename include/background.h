@@ -21,7 +21,10 @@ enum spatial_curvature {flat,open,closed};
  * function of time and scale factor, used for interpolation in other
  * modules.
  */
-
+enum scf_pot{
+  pol_times_exp, /** scf_potential set to pol_times_exp:V equals ((\phi-B)^\alpha + A)exp(-lambda*phi), see http://arxiv.org/abs/astro-ph/9908085.*/
+  double_exp /** scf_potential set to double_exp: V equals \Lambda_1^4e^{-\lambda\phi}+\Lambda_2^4e^{-\mu\phi} */
+};
 struct background
 {
   /** @name - input parameters initialized by user in input module
@@ -79,6 +82,7 @@ struct background
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
   double phi_ini_scf;       /**< \f$ \phi(t_0) \f$: scalar field initial value */
   double phi_prime_ini_scf; /**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
+  enum scf_pot scf_potential; /**< List of currently implement potential for a scalar field */
   double * scf_parameters;  /**< list of parameters describing the scalar field potential */
   int scf_parameters_size;  /**< size of scf_parameters */
   int scf_tuning_index;     /**< index in scf_parameters used for tuning */

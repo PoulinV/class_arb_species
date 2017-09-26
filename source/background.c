@@ -2281,23 +2281,70 @@ double ddV_p_scf(
   return  scf_alpha*(scf_alpha - 1.)*pow(phi -  scf_B,  scf_alpha - 2);
 }
 
-/** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
+/** parameters and functions for the double exponential potential
+ * \f$ V_double_exp = \Lambda_1^4e^{-\lambda\phi}+\Lambda_2^4e^{-\mu\phi}
+ */
+
+double V_double_exp_scf(
+                  struct background *pba,
+                  double phi){
+
+    return pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)+pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+
+}
+
+double dV_double_exp_scf(
+                  struct background *pba,
+                  double phi){
+
+    return -pba->scf_parameters[3]*pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)-pba->scf_parameters[4]*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+
+}
+
+double ddV_double_exp_scf(
+                  struct background *pba,
+                  double phi){
+
+    return pow(pba->scf_parameters[3],2)*pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)+pow(pba->scf_parameters[4],2)*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+
+}
+
+/** Finally we can obtain the overall potential \f$ V = V_p*V_e \f$
  */
 
 double V_scf(
              struct background *pba,
              double phi) {
-  return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+  /** we check first which potential should be considered */
+  if(pba->scf_potential = pol_times_exp){
+    return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+  }
+  else if(pba->scf_potential = double_exp){
+    return V_double_exp_scf(pba,phi);
+  }
 }
 
 double dV_scf(
               struct background *pba,
 	      double phi) {
-  return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+  /** we check first which potential should be considered */
+  if(pba->scf_potential = pol_times_exp){
+    return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+  }
+  else if(pba->scf_potential = double_exp){
+    return dV_double_exp_scf(pba,phi);
+  }
+
 }
 
 double ddV_scf(
                struct background *pba,
                double phi) {
-  return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+  /** we check first which potential should be considered */
+  if(pba->scf_potential = pol_times_exp){
+    return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+  }
+  else if(pba->scf_potential = double_exp){
+    return ddV_double_exp_scf(pba,phi);
+  }
 }
