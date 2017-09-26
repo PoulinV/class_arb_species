@@ -1150,9 +1150,11 @@ int input_read_parameters(
        flag2=_FALSE_;
        if (strcmp(string1,"pol_times_exp") == 0) {
          pba->scf_potential = pol_times_exp;
+         flag2 =_TRUE_;
        }
        if (strcmp(string1,"double_exp") == 0) {
          pba->scf_potential = double_exp;
+         flag2 =_TRUE_;
        }
    class_test(flag2==_FALSE_,
                   errmsg,
