@@ -339,6 +339,7 @@ int background_functions(
     pvecback[pba->index_bg_ddV_scf] = ddV_scf(pba,phi); // ddV_scf(pba,phi); //potential'' as function of phi
     pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
     pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
+    pvecback[pba->index_bg_w_scf] =pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]; // e.o.s of the scalar field, only used for outputs
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
     //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
@@ -839,6 +840,7 @@ int background_indices(
   class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_w_scf,pba->has_scf,index_bg,1);
 
   /* - index for Lambda */
   class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1);
@@ -2006,6 +2008,7 @@ int background_output_titles(struct background * pba,
 
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
+  class_store_columntitle(titles,"(.)w_scf",pba->has_scf);
   class_store_columntitle(titles,"phi_scf",pba->has_scf);
   class_store_columntitle(titles,"phi'_scf",pba->has_scf);
   class_store_columntitle(titles,"V_scf",pba->has_scf);
@@ -2058,6 +2061,7 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_w_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
@@ -2288,8 +2292,7 @@ double ddV_p_scf(
 double V_double_exp_scf(
                   struct background *pba,
                   double phi){
-
-    return pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)+pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+    return pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[0]*phi)+pow(pba->scf_parameters[3],4)*exp(-pba->scf_parameters[1]*phi);
 
 }
 
@@ -2297,7 +2300,7 @@ double dV_double_exp_scf(
                   struct background *pba,
                   double phi){
 
-    return -pba->scf_parameters[3]*pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)-pba->scf_parameters[4]*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+    return -pba->scf_parameters[0]*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[0]*phi)-pba->scf_parameters[1]*pow(pba->scf_parameters[3],4)*exp(-pba->scf_parameters[1]*phi);
 
 }
 
@@ -2305,7 +2308,8 @@ double ddV_double_exp_scf(
                   struct background *pba,
                   double phi){
 
-    return pow(pba->scf_parameters[3],2)*pow(pba->scf_parameters[1],4)*exp(-pba->scf_parameters[3]*phi)+pow(pba->scf_parameters[4],2)*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[4]*phi);
+    // printf("1 %e 2 %e \n", exp(-pba->scf_parameters[0]*phi),pow(pba->scf_parameters[0],4));
+    return pow(pba->scf_parameters[0],2)*pow(pba->scf_parameters[2],4)*exp(-pba->scf_parameters[0]*phi)+pow(pba->scf_parameters[1],2)*pow(pba->scf_parameters[3],4)*exp(-pba->scf_parameters[1]*phi);
 
 }
 
@@ -2316,24 +2320,32 @@ double V_scf(
              struct background *pba,
              double phi) {
   /** we check first which potential should be considered */
-  if(pba->scf_potential = pol_times_exp){
-    return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+  double result = 0.;
+  if(pba->scf_potential == pol_times_exp){
+    result =  V_e_scf(pba,phi)*V_p_scf(pba,phi);
   }
-  else if(pba->scf_potential = double_exp){
-    return V_double_exp_scf(pba,phi);
+  else if(pba->scf_potential == double_exp){
+    result = V_double_exp_scf(pba,phi);
   }
+  // printf("result Vf %e\n", result);
+
+  return result;
 }
 
 double dV_scf(
               struct background *pba,
 	      double phi) {
   /** we check first which potential should be considered */
-  if(pba->scf_potential = pol_times_exp){
-    return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+  double result = 0.;
+  if(pba->scf_potential == pol_times_exp){
+    result =  dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
   }
-  else if(pba->scf_potential = double_exp){
-    return dV_double_exp_scf(pba,phi);
+  else if(pba->scf_potential == double_exp){
+    result =  dV_double_exp_scf(pba,phi);
   }
+  // printf("result dVf %e\n", result);
+
+  return result;
 
 }
 
@@ -2341,10 +2353,15 @@ double ddV_scf(
                struct background *pba,
                double phi) {
   /** we check first which potential should be considered */
-  if(pba->scf_potential = pol_times_exp){
-    return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+  double result = 0.;
+
+  if(pba->scf_potential == pol_times_exp){
+    result =  ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
   }
-  else if(pba->scf_potential = double_exp){
-    return ddV_double_exp_scf(pba,phi);
+  else if(pba->scf_potential == double_exp){
+    result =  ddV_double_exp_scf(pba,phi);
   }
+  // printf("result ddVf %e\n", result);
+  return result;
+
 }

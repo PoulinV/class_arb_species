@@ -1128,20 +1128,8 @@ int input_read_parameters(
 
   /* Additional SCF parameters: */
   if (pba->Omega0_scf != 0.){
-    /** - Read parameters describing scalar field potential */
-    class_call(parser_read_list_of_doubles(pfc,
-                                           "scf_parameters",
-                                           &(pba->scf_parameters_size),
-                                           &(pba->scf_parameters),
-                                           &flag1,
-                                           errmsg),
-               errmsg,errmsg);
-    class_read_int("scf_tuning_index",pba->scf_tuning_index);
-    class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
-               errmsg,
-               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",pba->scf_tuning_index,pba->scf_parameters_size);
-    /** - Assign shooting parameter */
-    class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
+    /** - Assign a given scalar field potential */
+
     class_call(parser_read_string(pfc,"scf_potential",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -1160,7 +1148,29 @@ int input_read_parameters(
                   errmsg,
                   "could not identify scf_potential value, check that it is one of 'pol_times_exp','double_exp'.");
      }
+    /** - Read parameters describing scalar field potential */
+    class_call(parser_read_list_of_doubles(pfc,
+                                           "scf_parameters",
+                                           &(pba->scf_parameters_size),
+                                           &(pba->scf_parameters),
+                                           &flag1,
+                                           errmsg),
+               errmsg,errmsg);
+    class_read_int("scf_tuning_index",pba->scf_tuning_index);
+    class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
+               errmsg,
+               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",pba->scf_tuning_index,pba->scf_parameters_size);
+    /** - Assign shooting parameter */
+    class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
+
     scf_lambda = pba->scf_parameters[0];
+    if(pba->scf_potential == double_exp){
+      // pba->scf_parameters[0]*=1.95e28;/** conversion from Mpl to sqrt(Mpl/Mpc) */
+      // pba->scf_parameters[1]*=1.95e28;/** conversion from Mpl to sqrt(Mpl/Mpc) */
+    }
+    for(int i=0;i<4;i++){
+      printf("i %e\n",pba->scf_parameters[i]);
+    }
     if ((fabs(scf_lambda) <3.)&&(pba->background_verbose>1))
       printf("lambda = %e <3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
 
