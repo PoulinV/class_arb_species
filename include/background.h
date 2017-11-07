@@ -61,6 +61,7 @@ struct background
 		     not [delta p/delta rho] in the synchronous or
 		     newtonian gauge!!!) */
 
+
   short use_ppf; /**< flag switching on PPF perturbation equations
                     instead of true fluid equations for
                     perturbations. It could have been defined inside
@@ -92,6 +93,14 @@ struct background
   //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$: curvature contribution */
+  /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
+  double rho_arbitrary_species;
+  double * arbitrary_species_at_knot;
+  double * arbitrary_species_dd_at_knot;
+  short log_interpolation;
+  // double * arbitrary_species_dd_density_at_knot;
+  double * arbitrary_species_redshift_at_knot;
+  int arbitrary_species_number_of_knots;
 
   int N_ncdm;                            /**< Number of distinguishable ncdm species */
   double * M_ncdm;                       /**< vector of masses of non-cold relic:
@@ -188,6 +197,9 @@ struct background
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
 
+  /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
+  int index_bg_rho_arbitrary_species;
+
   /* end of vector in normal format, now quantities in long format */
 
   int index_bg_rho_crit;      /**< critical density */
@@ -278,6 +290,7 @@ struct background
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
   short has_curvature; /**< presence of global spatial curvature? */
+  short has_arbitrary_species; /**< presence of an arbitrary species with user specified density at some knots? */
 
   //@}
 
@@ -511,6 +524,14 @@ extern "C" {
                double phi_prime
                );
 
+  int interpolate_arbitrary_species_at_a(
+                           struct background * pba,
+                           double a,
+                           double *rho,
+                           double *drho
+                         );
+  int arbitrary_species_init( struct background *pba
+                         );
 #ifdef __cplusplus
 }
 #endif

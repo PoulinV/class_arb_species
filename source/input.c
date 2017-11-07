@@ -1021,7 +1021,39 @@ int input_read_parameters(
     }
   }
   Omega_tot += pba->Omega0_ncdm_tot;
+  /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
+  class_read_double("arbitrary_species_number_of_knots",pba->arbitrary_species_number_of_knots);
+  double *tmp_arbitrary_species;
+  if(pba->arbitrary_species_number_of_knots > 0){
+    class_call(parser_read_string(pfc,
+                                  "log_interpolation",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
 
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        pba->log_interpolation = _TRUE_;
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          pba->log_interpolation = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'log_interpolation'",string1);
+        }
+      }
+    }    class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
+    class_alloc(pba->arbitrary_species_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
+    class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
+    class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
+    // class_alloc(pba->arbitrary_species_dd_density_at_knot,sizeof(double)*pba->arbitrary_species_number_of_knots,pba->error_message);
+    Omega_tot += pba->arbitrary_species_at_knot[0];
+    printf("pba->arbitrary_species_density_at_knot[0] %e Omega_tot %e \n", pba->arbitrary_species_at_knot[0],Omega_tot);
+
+  }
   /** - Omega_0_k (effective fractional density of curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
   /** - Set curvature parameter K */
@@ -1029,6 +1061,7 @@ int input_read_parameters(
   /** - Set curvature sign */
   if (pba->K > 0.) pba->sgnK = 1;
   else if (pba->K < 0.) pba->sgnK = -1;
+
 
   /** - Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid), Omega0_scf (scalar field) */
 
@@ -1055,6 +1088,7 @@ int input_read_parameters(
    *  2) go through the components in order {lambda, fld, scf} and
    *     fill using first unspecified component.
   */
+
 
   /* Step 1 */
   if (flag1 == _TRUE_){
@@ -1094,7 +1128,12 @@ int input_read_parameters(
           pba->Omega0_k,
           Omega_tot);
   */
-
+  if(pba->arbitrary_species_number_of_knots != 0){
+    //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
+    // for(n=0;n<pba->arbitrary_species_number_of_knots;n++)pba->arbitrary_species_density_at_knot[n]+=pba->Omega0_lambda;
+    pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
+    pba->Omega0_lambda = 0.;
+  }
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
@@ -3484,6 +3523,8 @@ int input_default_params(
   pba->K = 0.;
   pba->sgnK = 0;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+  pba->arbitrary_species_number_of_knots = 0;
+  pba->log_interpolation = _TRUE_;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;

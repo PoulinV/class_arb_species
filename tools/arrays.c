@@ -537,12 +537,13 @@ int array_spline_table_line_to_line(
   *(array+(n_lines-1)*n_columns+index_ddydx2) =
     (un-qn*u[n_lines-2])/(qn* *(array+(n_lines-2)*n_columns+index_ddydx2)+1.0);
 
-  for (k=n_lines-2; k>=0; k--)
-    *(array+k*n_columns+index_ddydx2) = *(array+k*n_columns+index_ddydx2) *
-      *(array+(k+1)*n_columns+index_ddydx2) + u[k];
+  for (k=n_lines-2; k>=0; k--){
+		*(array+k*n_columns+index_ddydx2) = *(array+k*n_columns+index_ddydx2) *
+			*(array+(k+1)*n_columns+index_ddydx2) + u[k];
+	}
+
 
   free(u);
-
   return _SUCCESS_;
  }
 
@@ -1853,7 +1854,6 @@ int array_interpolate_logspline(
 
 	inf=0;
 	sup=n_lines-1;
-
 	if (x_array[inf] < x_array[sup]){
 
 		if (x < x_array[inf]) {

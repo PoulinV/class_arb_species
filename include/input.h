@@ -88,6 +88,24 @@
     }									\
   } while(0);
 
+  #define class_read_list_of_doubles_or_default_fill_column(name,destination,destination_tmp,index,default,siz,columns)	\
+    do {									\
+      class_call(parser_read_list_of_doubles(pfc,name,			\
+  	&entries_read,&(destination_tmp),&flag1,errmsg),			\
+  	       errmsg,							\
+  	       errmsg);							\
+      if (flag1 == _TRUE_){						\
+          class_test(entries_read != siz,errmsg,			\
+               "Number of entries in %s, %d, does not match expected number, %d.", \
+  		name,entries_read,siz);				\
+          for(n=0; n<siz; n++) destination[n*columns+index] = destination_tmp[n];		\
+      }else{								\
+  	class_alloc(destination,siz*sizeof(double),errmsg);		\
+  	for(n=0; n<siz; n++) destination[n*columns+index] = default;		\
+      }									\
+    } while(0);
+
+
 #define class_read_list_of_integers_or_default(name,destination,default,siz) \
   do {									\
     class_call(parser_read_list_of_integers(pfc,name,			\
