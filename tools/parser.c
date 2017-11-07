@@ -424,12 +424,12 @@ int parser_read_list_of_doubles(
       strncpy(string_with_one_value,string,(substring-string));
       string_with_one_value[substring-string]='\0';
     }
-    class_test(sscanf(string_with_one_value,"%lg",&(list[i-1])) != 1,
-	       errmsg,
-	       "could not read %dth value of list of parameters %s in file %s\n",
-	       i,
-	       name,
-	       pfc->filename);
+    // class_test(sscanf(string_with_one_value,"%lg",&(list[i-1])) != 1,
+	  //      errmsg,
+	  //      "could not read %dth value of list of parameters %s in file %s\n",
+	  //      i,
+	  //      name,
+	  //      pfc->filename);
     string = substring+1;
   } while(substring != NULL);
 
