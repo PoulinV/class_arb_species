@@ -418,6 +418,8 @@ int background_functions(
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     rho_r += pvecback[pba->index_bg_rho_ur];
+    // printf("z %e rho_ur %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_ur]);
+
   }
 
   /* extra arbitrary function mimicking some unspecified species */
@@ -426,13 +428,17 @@ int background_functions(
 
 
     interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species);
+    // printf("z %e rho %e \n", 1./a_rel-1, rho_arbitrary_species);
     pvecback[pba->index_bg_rho_arbitrary_species] = rho_arbitrary_species * pow(pba->H0,2);
-    printf("z %e rho %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_arbitrary_species]);
+
     rho_tot += pvecback[pba->index_bg_rho_arbitrary_species];
     class_test(rho_tot <= 0.,
                pba->error_message,
                "rho_tot = %e instead of strictly positive",rho_tot);
-   p_tot += a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //will be some function of df/da
+   p_tot += -a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //will be some function of df/da
+   pvecback[pba->index_bg_p_arbitrary_species] = a_rel/3*drho_arbitrary_species* pow(pba->H0,2);
+  //  printf("z %e rho %e p %e ptot %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_arbitrary_species],a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species],p_tot);
+
   }
 
 
@@ -486,22 +492,31 @@ int interpolate_arbitrary_species_at_a(
 
   double epsilon = 1e-15;
   int i,n;
-  if(pba->log_interpolation == _TRUE_ && z >= 10){
+  // printf("pba->arbitrary_species_logz_interpolation_above_z %e\n", pba->arbitrary_species_logz_interpolation_above_z);
+  if(z > pba->arbitrary_species_logz_interpolation_above_z && pba->arbitrary_species_table_is_log == _FALSE_){
       for(i = 0 ; i < pba->arbitrary_species_number_of_knots ; i++){
-        pba->arbitrary_species_redshift_at_knot[i] = log10(pba->arbitrary_species_redshift_at_knot[i]+epsilon);
+        pba->arbitrary_species_redshift_at_knot[i] = log10(pba->arbitrary_species_redshift_at_knot[i]);
       }
-      pba->log_interpolation = _FALSE_;
+      pba->arbitrary_species_table_is_log = _TRUE_;
     }
 
-  if(z<10 && pba->log_interpolation == _FALSE_){
-    for(i = 0 ; i < pba->arbitrary_species_number_of_knots ; i++)pba->arbitrary_species_redshift_at_knot[i] = pow(10,pba->arbitrary_species_redshift_at_knot[i])-epsilon;
-    pba->log_interpolation == _TRUE_;
+  if(z<=pba->arbitrary_species_logz_interpolation_above_z && pba->arbitrary_species_table_is_log == _TRUE_){
+    for(i = 0 ; i < pba->arbitrary_species_number_of_knots ; i++){
+      pba->arbitrary_species_redshift_at_knot[i] = pow(10,pba->arbitrary_species_redshift_at_knot[i]);
+    }
+    pba->arbitrary_species_table_is_log = _FALSE_;
   }
-  if(z>=10)z=log10(z);
-  class_call(array_interpolate_spline(pba->arbitrary_species_redshift_at_knot,
+
+  if(z > pba->arbitrary_species_logz_interpolation_above_z && pba->arbitrary_species_table_is_log == _TRUE_){
+    z=log10(z);
+  }
+
+
+
+   if(pba->arbitrary_species_interpolation_is_linear == _TRUE_){
+     class_call(array_interpolate_linear(pba->arbitrary_species_redshift_at_knot,
                                       pba->arbitrary_species_number_of_knots,
                                       pba->arbitrary_species_at_knot,
-                                      pba->arbitrary_species_dd_at_knot,
                                       4,
                                       z,
                                       &last_index,
@@ -510,12 +525,27 @@ int interpolate_arbitrary_species_at_a(
                                       pba->error_message),
              pba->error_message,
              pba->error_message);
+    }
+    else{
+      class_call(array_interpolate_spline(pba->arbitrary_species_redshift_at_knot,
+                                          pba->arbitrary_species_number_of_knots,
+                                          pba->arbitrary_species_at_knot,
+                                          pba->arbitrary_species_dd_at_knot,
+                                          4,
+                                          z,
+                                          &last_index,
+                                          result,
+                                          4,
+                                          pba->error_message),
+                 pba->error_message,
+                 pba->error_message);
+    }
 
 
   *rho = result[0];
   *drho = result[1];
 
-  printf("z %e rho %e drho %e ddrho %e dddrho %e \n",z,*rho,*drho,result[2],result[3]);
+  // printf("z %e rho %e drho %e ddrho %e dddrho %e \n",z,*rho,*drho,result[2],result[3]);
   return _SUCCESS_;
 }
 
@@ -803,8 +833,8 @@ int background_free_input(
   }
   if(pba->has_arbitrary_species == _TRUE_){
     free(pba->arbitrary_species_at_knot);
-    free(pba->arbitrary_species_dd_at_knot);
     free(pba->arbitrary_species_redshift_at_knot);
+    if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)free(pba->arbitrary_species_dd_at_knot);
   }
   return _SUCCESS_;
 }
@@ -935,6 +965,7 @@ int background_indices(
 
   /* - index for arbitrary species */
   class_define_index(pba->index_bg_rho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_p_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
 
 
   /* - put here additional ingredients that you want to appear in the
@@ -1082,24 +1113,22 @@ int arbitrary_species_init( struct background *pba
                  pba->error_message,
                  pba->error_message);
 
-      /** - --> fill a table of secondary derivative in view of spline interpolation */
-      // for(int i=0;i<pba->arbitrary_species_number_of_knots;i++){
-      //   pba->arbitrary_species_redshift_at_knot[i]=ln(pba->arbitrary_species_redshift_at_knot[i]);
-      //   for(int n=0;n<4;n++)pba->arbitrary_species_at_knot[i*4+n]= ln log(pba->arbitrary_species_redshift_at_knot[i*4+n]);
-      //
-      // }
-      class_call(array_spline_table_lines(pba->arbitrary_species_redshift_at_knot,
-                                         pba->arbitrary_species_number_of_knots,
-                                         pba->arbitrary_species_at_knot,
-                                         4,
-                                         pba->arbitrary_species_dd_at_knot,
-                                         _SPLINE_NATURAL_,
-                                         pba->error_message),
-                  pba->error_message,
-                  pba->error_message);
-        for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
-          printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
-        }
+      /** - --> if necessary, fill a table of secondary derivative in view of spline interpolation */
+      if(pba->arbitrary_species_interpolation_is_linear == _FALSE_){
+        class_call(array_spline_table_lines(pba->arbitrary_species_redshift_at_knot,
+                                           pba->arbitrary_species_number_of_knots,
+                                           pba->arbitrary_species_at_knot,
+                                           4,
+                                           pba->arbitrary_species_dd_at_knot,
+                                           _SPLINE_EST_DERIV_,
+                                           pba->error_message),
+                    pba->error_message,
+                    pba->error_message);
+      }
+
+        // for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
+        //   printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
+        // }
      return _SUCCESS_;
 }
 /**
@@ -2143,6 +2172,7 @@ int background_output_titles(struct background * pba,
     }
   }
   class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
@@ -2191,6 +2221,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_arbitrary_species],pba->has_arbitrary_species,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_p_arbitrary_species],pba->has_arbitrary_species,storeidx);
     if (pba->has_ncdm == _TRUE_){
       for (n=0; n<pba->N_ncdm; n++){
         class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);

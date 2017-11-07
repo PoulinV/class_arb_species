@@ -93,11 +93,14 @@ struct background
   //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
 
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$: curvature contribution */
+
   /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
   double rho_arbitrary_species;
   double * arbitrary_species_at_knot;
   double * arbitrary_species_dd_at_knot;
-  short log_interpolation;
+  short arbitrary_species_table_is_log;
+  double arbitrary_species_logz_interpolation_above_z;
+  short arbitrary_species_interpolation_is_linear;
   // double * arbitrary_species_dd_density_at_knot;
   double * arbitrary_species_redshift_at_knot;
   int arbitrary_species_number_of_knots;
@@ -199,6 +202,7 @@ struct background
 
   /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
   int index_bg_rho_arbitrary_species;
+  int index_bg_p_arbitrary_species;
 
   /* end of vector in normal format, now quantities in long format */
 
