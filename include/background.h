@@ -97,6 +97,7 @@ struct background
   /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
   double rho_arbitrary_species;
   double * arbitrary_species_at_knot;
+  double * arbitrary_species_density_at_knot;
   double * arbitrary_species_dd_at_knot;
   short arbitrary_species_table_is_log;
   double arbitrary_species_logz_interpolation_above_z;

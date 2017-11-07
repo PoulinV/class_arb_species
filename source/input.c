@@ -1052,8 +1052,13 @@ int input_read_parameters(
         class_read_double("arbitrary_species_logz_interpolation_above_z",pba->arbitrary_species_logz_interpolation_above_z);
         pba->arbitrary_species_table_is_log = _FALSE_;
         class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
+        class_read_list_of_doubles_or_default("arbitrary_species_density_at_knot",pba->arbitrary_species_density_at_knot,0.0,pba->arbitrary_species_number_of_knots);
         class_alloc(pba->arbitrary_species_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
-        class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
+        for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
+          pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_density_at_knot[i];
+          for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.;
+        }
+        // class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
         if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
         Omega_tot += pba->arbitrary_species_at_knot[0];
         // printf("pba->arbitrary_species_density_at_knot[0] %e Omega_tot %e \n", pba->arbitrary_species_at_knot[0],Omega_tot);

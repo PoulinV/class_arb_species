@@ -833,6 +833,7 @@ int background_free_input(
   }
   if(pba->has_arbitrary_species == _TRUE_){
     free(pba->arbitrary_species_at_knot);
+    free(pba->arbitrary_species_density_at_knot);
     free(pba->arbitrary_species_redshift_at_knot);
     if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)free(pba->arbitrary_species_dd_at_knot);
   }
@@ -1126,9 +1127,9 @@ int arbitrary_species_init( struct background *pba
                     pba->error_message);
       }
 
-        // for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
-        //   printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
-        // }
+        for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
+          printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
+        }
      return _SUCCESS_;
 }
 /**
