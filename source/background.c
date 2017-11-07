@@ -1127,9 +1127,9 @@ int arbitrary_species_init( struct background *pba
                     pba->error_message);
       }
 
-        for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
-          printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
-        }
+        // for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
+        //   printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
+        // }
      return _SUCCESS_;
 }
 /**
