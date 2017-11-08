@@ -817,51 +817,71 @@ cdef class Class:
 
     def h(self):
         return self.ba.h
-    
+
     def H1(self):
+        self.compute(["thermodynamics"])
         return self.ba.H1
 
     def H2(self):
+        self.compute(["thermodynamics"])
         return self.ba.H2
 
     def H3(self):
+        self.compute(["thermodynamics"])
         return self.ba.H3
     def H4(self):
+        self.compute(["thermodynamics"])
         return self.ba.H4
     def H5(self):
+        self.compute(["thermodynamics"])
         return self.ba.H5
     def H6(self):
+        self.compute(["thermodynamics"])
         return self.ba.H6
     def H7(self):
+        self.compute(["thermodynamics"])
         return self.ba.H7
     def H8(self):
+        self.compute(["thermodynamics"])
         return self.ba.H8
     def H9(self):
+        self.compute(["thermodynamics"])
         return self.ba.H9
     def H10(self):
+        self.compute(["thermodynamics"])
         return self.ba.H10
     def H11(self):
+        self.compute(["thermodynamics"])
         return self.ba.H11
     def H12(self):
+        self.compute(["thermodynamics"])
         return self.ba.H12
     def H13(self):
+        self.compute(["thermodynamics"])
         return self.ba.H13
     def H14(self):
+        self.compute(["thermodynamics"])
         return self.ba.H14
     def H15(self):
+        self.compute(["thermodynamics"])
         return self.ba.H15
     def H16(self):
+        self.compute(["thermodynamics"])
         return self.ba.H16
     def H17(self):
+        self.compute(["thermodynamics"])
         return self.ba.H17
     def H18(self):
+        self.compute(["thermodynamics"])
         return self.ba.H18
     def H19(self):
+        self.compute(["thermodynamics"])
         return self.ba.H19
     def H20(self):
+        self.compute(["thermodynamics"])
         return self.ba.H20
 
-        
+
 
     def n_s(self):
         return self.pm.n_s
@@ -1586,7 +1606,7 @@ cdef class Class:
             elif name == 'self.H19':
                 value = self.ba.H19
             elif name == 'self.H20':
-                value = self.ba.H20            
+                value = self.ba.H20
 	    ## BEGIN: Add own derived parameters
             elif name == 'annihilation':
                 value = self.th.annihilation
@@ -1608,7 +1628,7 @@ cdef class Class:
             elif name == 'PBH_low_mass':
                 value = self.th.PBH_low_mass
             elif name == 'PBH_fraction':
-                value = self.th.PBH_fraction  
+                value = self.th.PBH_fraction
             ## END
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
