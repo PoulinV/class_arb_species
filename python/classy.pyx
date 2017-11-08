@@ -817,6 +817,51 @@ cdef class Class:
 
     def h(self):
         return self.ba.h
+    
+    def H1(self):
+        return self.ba.H1
+
+    def H2(self):
+        return self.ba.H2
+
+    def H3(self):
+        return self.ba.H3
+    def H4(self):
+        return self.ba.H4
+    def H5(self):
+        return self.ba.H5
+    def H6(self):
+        return self.ba.H6
+    def H7(self):
+        return self.ba.H7
+    def H8(self):
+        return self.ba.H8
+    def H9(self):
+        return self.ba.H9
+    def H10(self):
+        return self.ba.H10
+    def H11(self):
+        return self.ba.H11
+    def H12(self):
+        return self.ba.H12
+    def H13(self):
+        return self.ba.H13
+    def H14(self):
+        return self.ba.H14
+    def H15(self):
+        return self.ba.H15
+    def H16(self):
+        return self.ba.H16
+    def H17(self):
+        return self.ba.H17
+    def H18(self):
+        return self.ba.H18
+    def H19(self):
+        return self.ba.H19
+    def H20(self):
+        return self.ba.H20
+
+        
 
     def n_s(self):
         return self.pm.n_s
@@ -1502,7 +1547,47 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
-            ## BEGIN: Add own derived parameters
+            elif name == 'self.H1':
+                value = self.ba.H1
+            elif name == 'self.H2':
+                value = self.ba.H2
+            elif name == 'self.H3':
+                value = self.ba.H3
+            elif name == 'self.H4':
+                value = self.ba.H4
+            elif name == 'self.H5':
+                value = self.ba.H5
+            elif name == 'self.H6':
+                value = self.ba.H6
+            elif name == 'self.H7':
+                value = self.ba.H7
+            elif name == 'self.H8':
+                value = self.ba.H8
+            elif name == 'self.H9':
+                value = self.ba.H9
+            elif name == 'self.H10':
+                value = self.ba.H10
+            elif name == 'self.H11':
+                value = self.ba.H11
+            elif name == 'self.H12':
+                value = self.ba.H12
+            elif name == 'self.H13':
+                value = self.ba.H13
+            elif name == 'self.H14':
+                value = self.ba.H14
+            elif name == 'self.H15':
+                value = self.ba.H15
+            elif name == 'self.H16':
+                value = self.ba.H16
+            elif name == 'self.H17':
+                value = self.ba.H17
+            elif name == 'self.H18':
+                value = self.ba.H18
+            elif name == 'self.H19':
+                value = self.ba.H19
+            elif name == 'self.H20':
+                value = self.ba.H20            
+	    ## BEGIN: Add own derived parameters
             elif name == 'annihilation':
                 value = self.th.annihilation
             elif name == 'sigmav':

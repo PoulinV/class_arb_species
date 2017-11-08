@@ -29,7 +29,7 @@ cdef extern from "class.h":
 
     cdef struct precision:
         ErrorMsg error_message
-		
+
         double param_fz_1
         double param_fz_2
         double param_fz_3
@@ -62,7 +62,26 @@ cdef extern from "class.h":
         double w0_fld
         double wa_fld
         double cs2_fld
-
+        double H1
+        double H2
+        double H3
+        double H4
+        double H5
+        double H6
+        double H7
+        double H8
+        double H9
+        double H10
+        double H11
+        double H12
+        double H13
+        double H14
+        double H15
+        double H16
+        double H17
+        double H18
+        double H19
+        double H20
         int bt_size
 
     cdef struct thermo:
@@ -88,11 +107,11 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
-		
+
         # BEGIN: Add additional parameters (related to exotic energy injection)
         double annihilation
         double PBH_low_mass
-        double PBH_fraction 
+        double PBH_fraction
         # END
 
         int tt_size

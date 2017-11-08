@@ -2164,6 +2164,8 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_g",_TRUE_);
   class_store_columntitle(titles,"(.)rho_b",_TRUE_);
   class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
+  class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
   if (pba->has_ncdm == _TRUE_){
     for (n=0; n<pba->N_ncdm; n++){
       sprintf(tmp,"(.)rho_ncdm[%d]",n);
@@ -2172,8 +2174,7 @@ int background_output_titles(struct background * pba,
       class_store_columntitle(titles,tmp,_TRUE_);
     }
   }
-  class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
-  class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
+
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)w_fld",pba->has_fld);

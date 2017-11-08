@@ -1022,6 +1022,29 @@ int input_read_parameters(
   }
   Omega_tot += pba->Omega0_ncdm_tot;
   /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
+  class_call(parser_read_string(pfc,
+                                "output_H_at_z",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pba->output_H_at_z = _TRUE_;
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pba->output_H_at_z = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'output_H_at_z'",string1);
+      }
+    }
+  }
+
+
   class_read_double("arbitrary_species_number_of_knots",pba->arbitrary_species_number_of_knots);
   double *tmp_arbitrary_species;
   if(pba->arbitrary_species_number_of_knots > 0){
@@ -3538,6 +3561,7 @@ int input_default_params(
   pba->arbitrary_species_logz_interpolation_above_z = 1e30; //arbitrarily large number, no log interpolation in the default case.
   pba->arbitrary_species_table_is_log = _FALSE_;
   pba->arbitrary_species_interpolation_is_linear = _TRUE_; //default: we linearly interpolate rho and rho'. Found to be better to avoid weird behavior at low-z.
+  pba->output_H_at_z = _FALSE_; //output H at z for derived parameter.
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;

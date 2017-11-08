@@ -41,7 +41,28 @@ struct background
   //@{
 
   double H0; /**< \f$ H_0 \f$: Hubble parameter (in fact, [\f$H_0/c\f$]) in \f$ Mpc^{-1} \f$ */
-
+  //Vivian: a couple of parameters storing values of H at user-specified redshifts.
+  double H1;
+  double H2;
+  double H3;
+  double H4;
+  double H5;
+  double H6;
+  double H7;
+  double H8;
+  double H9;
+  double H10;
+  double H11;
+  double H12;
+  double H13;
+  double H14;
+  double H15;
+  double H16;
+  double H17;
+  double H18;
+  double H19;
+  double H20;
+  short output_H_at_z;
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$: photons */
 
   double T_cmb; /**< \f$ T_{cmb} \f$: current CMB temperature in Kelvins */
