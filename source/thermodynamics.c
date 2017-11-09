@@ -1113,58 +1113,58 @@ int thermodynamics_init(
       printf(" -> free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
              pth->tau_free_streaming);
     }
-    //Vivian: stupid implementation to store values of H in some variables used as derived parameters.
-    int last_index,i;
-    double tau_H,z;
-    double dz = 0.25;
-    /**Summary: */
-    /** - Infer effective number of neutrinos at the time of BBN */
-    // class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-
-    /** - 8.6173e-11 converts from Kelvin to MeV. We randomly choose 0.1 MeV to be the temperature of BBN */
-
-
-    if(pba->output_H_at_z == _TRUE_){
-          printf("here \n");
-          for(i=1;i<=20;i++){
-            z=i*dz;
-            class_call(background_tau_of_z(pba,
-                                           z,
-                                           &tau_H),
-                       pba->error_message,
-                       pba->error_message);
-
-            class_call(background_at_tau(pba,
-                                         tau_H,
-                                         pba->long_info,
-                                         pba->inter_normal,
-                                         &last_index,
-                                         pvecback),
-                       pba->error_message,
-                       pba->error_message);
-             if(i==1)pba->H1=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==2)pba->H2=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==3)pba->H3=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==4)pba->H4=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==5)pba->H5=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==6)pba->H6=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==7)pba->H7=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==8)pba->H8=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==9)pba->H9=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==10)pba->H10=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==11)pba->H11=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==12)pba->H12=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==13)pba->H13=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==14)pba->H14=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==15)pba->H15=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==16)pba->H16=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==17)pba->H17=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==18)pba->H18=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==19)pba->H19=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-             else if(i==20)pba->H20=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-
-
-          }
+    // //Vivian: stupid implementation to store values of H in some variables used as derived parameters.
+    // int last_index,i;
+    // double tau_H,z;
+    // double dz = 0.25;
+    // /**Summary: */
+    // /** - Infer effective number of neutrinos at the time of BBN */
+    // // class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+    //
+    // /** - 8.6173e-11 converts from Kelvin to MeV. We randomly choose 0.1 MeV to be the temperature of BBN */
+    //
+    //
+    // if(pba->output_H_at_z == _TRUE_){
+    //       printf("here \n");
+    //       for(i=1;i<=20;i++){
+    //         z=i*dz;
+    //         class_call(background_tau_of_z(pba,
+    //                                        z,
+    //                                        &tau_H),
+    //                    pba->error_message,
+    //                    pba->error_message);
+    //
+    //         class_call(background_at_tau(pba,
+    //                                      tau_H,
+    //                                      pba->long_info,
+    //                                      pba->inter_normal,
+    //                                      &last_index,
+    //                                      pvecback),
+    //                    pba->error_message,
+    //                    pba->error_message);
+    //          if(i==1)pba->H1=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==2)pba->H2=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==3)pba->H3=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==4)pba->H4=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==5)pba->H5=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==6)pba->H6=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==7)pba->H7=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==8)pba->H8=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==9)pba->H9=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==10)pba->H10=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==11)pba->H11=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==12)pba->H12=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==13)pba->H13=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==14)pba->H14=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==15)pba->H15=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==16)pba->H16=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==17)pba->H17=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==18)pba->H18=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==19)pba->H19=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //          else if(i==20)pba->H20=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+    //
+    //
+    //       }
 
       // printf("pba->H0 %e\n", pba->H0 / 1.e3 * _c_);
       // printf("pba->H1 %e\n", pba->H1);
@@ -1187,7 +1187,7 @@ int thermodynamics_init(
       // printf("pba->H18 %e\n", pba->H18);
       // printf("pba->H19 %e\n", pba->H19);
       // printf("pba->H20 %e\n", pba->H20);
-    }
+    // }
   }
 
   free(pvecback);
