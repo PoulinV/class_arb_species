@@ -755,61 +755,7 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
-   //Vivian: stupid implementation to store values of H in some variables used as derived parameters.
-   int last_index,i;
-   double tau_H,z;
-   double dz = 0.25;
-   double *pvecback;
-   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
-   /**Summary: */
-   /** - Infer effective number of neutrinos at the time of BBN */
-   // class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-
-
-
-   if(pba->output_H_at_z == _TRUE_){
-         printf("here \n");
-         for(i=1;i<=20;i++){
-           z=i*dz;
-           class_call(background_tau_of_z(pba,
-                                          z,
-                                          &tau_H),
-                      pba->error_message,
-                      pba->error_message);
-
-           class_call(background_at_tau(pba,
-                                        tau_H,
-                                        pba->long_info,
-                                        pba->inter_normal,
-                                        &last_index,
-                                        pvecback),
-                      pba->error_message,
-                      pba->error_message);
-            if(i==1)pba->H1=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==2)pba->H2=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==3)pba->H3=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==4)pba->H4=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==5)pba->H5=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==6)pba->H6=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==7)pba->H7=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==8)pba->H8=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==9)pba->H9=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==10)pba->H10=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==11)pba->H11=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==12)pba->H12=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==13)pba->H13=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==14)pba->H14=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==15)pba->H15=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==16)pba->H16=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==17)pba->H17=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==18)pba->H18=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==19)pba->H19=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-            else if(i==20)pba->H20=pvecback[pba->index_bg_H] / 1.e3 * _c_;
-
-
-         }
-       }
   return _SUCCESS_;
 
 }
@@ -1980,7 +1926,59 @@ int background_solve(
       printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
+  //Vivian: stupid implementation to store values of H in some variables used as derived parameters.
+  double tau_H,z;
+  double dz = 0.25;
+  // double *pvecback;
+  // class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
+  /**Summary: */
+  /** - Infer effective number of neutrinos at the time of BBN */
+  // class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
+
+
+  if(pba->output_H_at_z == _TRUE_){
+        for(i=1;i<=20;i++){
+          z=i*dz;
+          class_call(background_tau_of_z(pba,
+                                         z,
+                                         &tau_H),
+                     pba->error_message,
+                     pba->error_message);
+
+          class_call(background_at_tau(pba,
+                                       tau_H,
+                                       pba->long_info,
+                                       pba->inter_normal,
+                                       &last_index,
+                                       pvecback),
+                     pba->error_message,
+                     pba->error_message);
+           if(i==1)pba->H1=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==2)pba->H2=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==3)pba->H3=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==4)pba->H4=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==5)pba->H5=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==6)pba->H6=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==7)pba->H7=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==8)pba->H8=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==9)pba->H9=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==10)pba->H10=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==11)pba->H11=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==12)pba->H12=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==13)pba->H13=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==14)pba->H14=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==15)pba->H15=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==16)pba->H16=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==17)pba->H17=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==18)pba->H18=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==19)pba->H19=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+           else if(i==20)pba->H20=pvecback[pba->index_bg_H] / 1.e3 * _c_;
+
+
+        }
+      }
   free(pvecback);
   free(pvecback_integration);
 
