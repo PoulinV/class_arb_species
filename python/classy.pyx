@@ -1567,45 +1567,45 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
-            elif name == 'self.H1':
+            elif name == 'H1':
                 value = self.ba.H1
-            elif name == 'self.H2':
+            elif name == 'H2':
                 value = self.ba.H2
-            elif name == 'self.H3':
+            elif name == 'H3':
                 value = self.ba.H3
-            elif name == 'self.H4':
+            elif name == 'H4':
                 value = self.ba.H4
-            elif name == 'self.H5':
+            elif name == 'H5':
                 value = self.ba.H5
-            elif name == 'self.H6':
+            elif name == 'H6':
                 value = self.ba.H6
-            elif name == 'self.H7':
+            elif name == 'H7':
                 value = self.ba.H7
-            elif name == 'self.H8':
+            elif name == 'H8':
                 value = self.ba.H8
-            elif name == 'self.H9':
+            elif name == 'H9':
                 value = self.ba.H9
-            elif name == 'self.H10':
+            elif name == 'H10':
                 value = self.ba.H10
-            elif name == 'self.H11':
+            elif name == 'H11':
                 value = self.ba.H11
-            elif name == 'self.H12':
+            elif name == 'H12':
                 value = self.ba.H12
-            elif name == 'self.H13':
+            elif name == 'H13':
                 value = self.ba.H13
-            elif name == 'self.H14':
+            elif name == 'H14':
                 value = self.ba.H14
-            elif name == 'self.H15':
+            elif name == 'H15':
                 value = self.ba.H15
-            elif name == 'self.H16':
+            elif name == 'H16':
                 value = self.ba.H16
-            elif name == 'self.H17':
+            elif name == 'H17':
                 value = self.ba.H17
-            elif name == 'self.H18':
+            elif name == 'H18':
                 value = self.ba.H18
-            elif name == 'self.H19':
+            elif name == 'H19':
                 value = self.ba.H19
-            elif name == 'self.H20':
+            elif name == 'H20':
                 value = self.ba.H20
 	    ## BEGIN: Add own derived parameters
             elif name == 'annihilation':
