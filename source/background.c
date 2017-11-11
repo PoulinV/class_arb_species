@@ -438,7 +438,7 @@ int background_functions(
    p_tot += -a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //will be some function of df/da
    pvecback[pba->index_bg_p_arbitrary_species] = a_rel/3*drho_arbitrary_species* pow(pba->H0,2);
   //  printf("z %e rho %e p %e ptot %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_arbitrary_species],a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species],p_tot);
-
+   pvecback[pba->index_bg_rho_arbitrary_species] += pba->Omega0_lambda * pow(pba->H0,2); //We finally store the cosmological constant in our arbitrary species for output
   }
 
 
