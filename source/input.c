@@ -1161,12 +1161,12 @@ int input_read_parameters(
           pba->Omega0_k,
           Omega_tot);
   */
-  if(pba->arbitrary_species_number_of_knots != 0){
-    //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
-    for(n=0;n<pba->arbitrary_species_number_of_knots;n++)pba->arbitrary_species_at_knot[n*4]+=pba->Omega0_lambda;
-    // pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
-    pba->Omega0_lambda = 0.;
-  }
+  // if(pba->arbitrary_species_number_of_knots != 0){
+  //   //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
+  //   for(n=0;n<pba->arbitrary_species_number_of_knots;n++)pba->arbitrary_species_at_knot[n*4]+=pba->Omega0_lambda;
+  //   // pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
+  //   pba->Omega0_lambda = 0.;
+  // }
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
