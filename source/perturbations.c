@@ -5325,7 +5325,7 @@ int perturb_total_stress_energy(
 
   if(pth->u_gcdm != 0. || pth->beta_gcdm != 0.)dmu_gcdm =ppw->pvecthermo[pth->index_th_dmu_gcdm];
   else dmu_gcdm = 0;
-  dmu_gcdm = MIN(1.,dmu_gcdm);
+  // dmu_gcdm = MIN(1.,dmu_gcdm);
   /** - wavenumber and scale factor related quantities */
 
   a = ppw->pvecback[pba->index_bg_a];
@@ -5989,6 +5989,9 @@ int perturb_sources(
         _set_source_(ppt->index_tp_t1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa]* exp_m_mu_gcdm * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
 
         _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+
+
+
 
       }
 
