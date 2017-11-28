@@ -2284,8 +2284,9 @@ int thermodynamics_low_mass_pbh_energy_injection(
   //  printf("preco: z %e pbhmass %e f %e\n",z,pbh_mass,f);
 
   f_neutrinos = 6*0.147;
-  // em_branching = (f-f_neutrinos)/f;
-  em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
+  em_branching = (f-f_neutrinos)/f;
+  // em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
+  // printf("em_branching %e\n", (f-f_neutrinos)/f);
   // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
   if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
@@ -5860,6 +5861,7 @@ int thermodynamics_merge_reco_and_reio(
     thermodynamics_annihilation_f_eff_free(preco);
   }
   if(pth->energy_repart_functions == Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
+    // fprintf(stdout,"pth tabels are free'd\n");
     thermodynamics_annihilation_coefficients_free(pth);
   }
   if ((pth->reio_parametrization != reio_none))

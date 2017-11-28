@@ -246,9 +246,14 @@ class decaying_model(model):
 			redshift = ham
 		from .common import trapz, logConversion
 
+<<<<<<< Updated upstream
 		E = logConversion(logEnergies)
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
 		#normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
+=======
+		tot_spec = (ref_el_spec + ref_ph_spec + ref_oth_spec)/2. ### TBC, the factor 2 comes from the fact that we use Cirelli spectra for DM annihilation.
+		# normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+>>>>>>> Stashed changes
 		normalization = np.ones_like(redshift)*(m)
 		spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
 		spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
@@ -350,6 +355,7 @@ class evaporating_model(model):
 
         model.__init__(self, spec_el, spec_ph, normalization, 0)
 
+<<<<<<< Updated upstream
 class accreting_model(model):
     u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
     primordial black holes (PBH) as a candidate of DM
@@ -397,6 +403,43 @@ class accreting_model(model):
         def _unscaled(redshift, spec_point):
 			ret = spec_point*np.ones_like(redshift)
 			return ret
+=======
+
+
+class evaporating_model(model):
+	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of evaporating
+	primordial black holes (PBH) as a candidate of DM
+
+	Inherits all methods of :class:`model <DarkAges.model.model>`
+	"""
+
+	def __init__(self, PBH_mass_ini,logEnergies, redshift, include_secondaries=True):
+		u"""
+		At initialization evolution of the PBH mass is calculated with
+		:func:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>` and the
+		double-differential spectrum :math:`\mathrm{d}^2 N(z,E) / \mathrm{d}E\mathrm{d}z`
+		needed for the initialization inherited from :class:`model <DarkAges.model.model>` is calculated
+		according to :func:`PBH_spectrum <DarkAges.evaporator.PBH_spectrum>`
+
+		Parameters
+		----------
+		PBH_mass_ini : :obj:`float`
+			Initial mass of the primordial black hole (*in units of* :math:`\\mathrm{g}`)
+		logEnergies : :obj:`array-like`, optional
+			Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
+			(*in units of* :math:`\\mathrm{eV}`) to the base 10.
+			If not specified, the standard array provided by
+			:class:`the initializer <DarkAges.__init__>` is taken.
+		redshift : :obj:`array-like`, optional
+			Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
+			the calculation of the double-differential spectra.
+			If not specified, the standard array provided by
+			:class:`the initializer <DarkAges.__init__>` is taken.
+		"""
+
+		from .evaporator import PBH_spectrum_at_m, PBH_mass_at_z, PBH_dMdt
+		from .common import trapz, logConversion, time_at_z, nan_clean
+>>>>>>> Stashed changes
 
         spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_el[:,None])
         spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_ph[:,None])
@@ -441,6 +484,7 @@ class old_model(object):
 			print_warning('You did not include a proper instance of the class "transfer"')
 			return -1
 		else:
+<<<<<<< Updated upstream
 			red = transfer_instance.z_deposited
 			if not self._is_initialized:
 				self._is_initialized = True
@@ -461,6 +505,55 @@ class old_model(object):
                                 transfer_instance.transfer_phot,
                                 transfer_instance.transfer_elec,
                                 self.z_dependent_photons, self.z_dependent_electrons, alpha=alpha_to_use)
+=======
+			sec_from_pi0 = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
+			sec_from_piCh = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
+			sec_from_muon = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
+
+		spec_el = np.zeros_like(prim_spec_el)
+		spec_el += prim_spec_el
+		spec_el += trapz((sec_from_pi0[:,:,None,0])*prim_spec_pi0[None,:,:],E_prim,axis=1)
+		spec_el += trapz((sec_from_piCh[:,:,None,0])*prim_spec_piCh[None,:,:],E_prim,axis=1)
+		spec_el += trapz((sec_from_muon[:,:,None,0])*prim_spec_muon[None,:,:],E_prim,axis=1)
+		spec_el =  nan_clean(spec_el)
+
+		spec_ph = np.zeros_like(prim_spec_ph)
+		spec_ph += prim_spec_ph
+		spec_ph += trapz((sec_from_pi0[:,:,None,1])*prim_spec_pi0[None,:,:],E_prim,axis=1)
+		spec_ph += trapz((sec_from_piCh[:,:,None,1])*prim_spec_piCh[None,:,:],E_prim,axis=1)
+		spec_ph += trapz((sec_from_muon[:,:,None,1])*prim_spec_muon[None,:,:],E_prim,axis=1)
+		spec_ph = nan_clean(spec_ph)
+
+		# Total spectrum (for normalization)
+		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
+		del_E = np.zeros(redshift.shape, dtype=np.float64)
+		for idx in xrange(del_E.shape[0]):
+			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
+			# del_E[idx] = trapz((spec_el[:,idx]+spec_ph[:,idx])*E**2*np.log(10),(logEnergies))
+			normalization = del_E
+
+		model.__init__(self, spec_el, spec_ph, normalization, logEnergies,0)
+
+class accreting_model(model):
+	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
+	primordial black holes (PBH) as a candidate of DM
+
+	Inherits all methods of :class:`model <DarkAges.model.model>`
+	"""
+
+	def __init__(self, PBH_mass, recipe, logEnergies, redshift):
+		u"""
+		At initialization the reference spectra are read and the luminosity
+		spectrum :math:`L_\omega` needed for
+		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
+
+		.. math::
+			L_\omega = \Theta(\omega - \omega_{\rm min})w^{-a}\exp(-\omega/T_s)
+		where :math:`T_s\simeq 200 keV`, :math:`a=-2.5+\log(M)/3` and :math:`\omega_{\rm min} = (10/M)^{1/2}` if recipe = disk_accretion or
+		.. math::
+			L_\omega = w^{-a}\exp(-\omega/T_s)
+		where :math:`T_s\simeq 200 keV` if recipe = spherical_accretion.
+>>>>>>> Stashed changes
 
 			return np.array([red, f_func], dtype=np.float64)
 

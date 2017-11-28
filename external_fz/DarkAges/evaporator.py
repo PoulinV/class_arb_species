@@ -82,6 +82,7 @@ def PBH_spectrum_at_m( mass, logEnergies, *particles):
 			spin = _get_spin(particle)
 			fraction = fraction_at_M( mass, particle )
 			ret[:,:] += fraction*np.asarray(np.vectorize(Primary_spectrum, excluded = ['spin']).__call__( energy=E[:,None], PBH_mass=mass[None,:], spin=spin))
+			# ret[:,:] += fraction*np.asarray(np.vectorize(Primary_spectrum, excluded = ['spin']).__call__( energy=E[:,None], PBH_mass=mass[None,:], spin=spin))
 	else:
 		raise DarkAgesError('There is no particles given')
 	return ret
@@ -131,6 +132,7 @@ def get_mass_from_temperature(temperature):
 	:obj:`float`
 		Mass of the black hole (*in units of* :math:`\\mathrm{g}`)
 	"""
+
 
 	return 1.06e13 / temperature
 

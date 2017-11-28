@@ -337,8 +337,13 @@ def f_function(logE, z_inj, z_dep, normalization,
 	for i in xrange(len(energy_integral)):
 		if how_to_integrate == 'logE':
 			for k in xrange(i,len(energy_integral[i])):
+<<<<<<< Updated upstream
 				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
 				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
+=======
+				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)*np.log(10)
+				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)*np.log(10)
+>>>>>>> Stashed changes
 				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
 		elif how_to_integrate == 'energy':
 			for k in xrange(i,len(energy_integral[i])):
@@ -364,7 +369,11 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	return result
 
+<<<<<<< Updated upstream
 def log_fit(points,func,xgrid,exponent=1):
+=======
+def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
+>>>>>>> Stashed changes
 	u"""Returns an array of interpolated points using the
 	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`-class.
 

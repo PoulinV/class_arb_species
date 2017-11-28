@@ -98,6 +98,16 @@ from DarkAges import transfer_functions, logEnergies, redshift, DarkAgesError
 from DarkAges.common import print_info
 import DarkAges.recipes as recipes
 
+# Emin_table = transfer_functions[0].log10E[0]
+# Emax_table = transfer_functions[0].log10E[39]
+
+if options.nbins_table == None:
+	options.nbins_table = len(transfer_functions[0].log10E[:])
+if options.Log10Emin == None or options.Log10Emax == None:
+	logEnergies = transfer_functions[0].log10E[:]
+else:
+	logEnergies = np.linspace(options.Log10Emin,options.Log10Emax,options.nbins_table)
+	dlogE = (options.Log10Emax-options.Log10Emin)/options.nbins_table
 DarkOptions = dict()
 #keys_to_search = ['mass','t_dec','background']
 #for key in keys_to_search:
