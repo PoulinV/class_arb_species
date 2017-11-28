@@ -23,7 +23,7 @@ def secondaries_from_muon(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'muon_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'muon_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'muon_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)
@@ -44,7 +44,7 @@ def secondaries_from_pi0(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'pi0_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'pi0_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'pi0_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)
@@ -63,7 +63,7 @@ def secondaries_from_piCh(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'piCh_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'piCh_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'piCh_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)
@@ -81,15 +81,29 @@ def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 		Energy = np.asarray([Energy])
 	if recipe=='spherical_accretion':
 		a = 0.5
-		Ts = 200
-	 	out = Energy**(-a)*np.exp(-Energy/Ts)
+		Ts = 0.4*511e3
+		Emin = 1
+		Emax = Ts
+		out = np.zeros_like(Energy)
+		Emin_mask = Energy > Emin
+		# Emax_mask = Ts > Energy
+	 	out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
+		out[~Emin_mask] = 0.
+		# out[~Emax_mask] = 0.
+
 	elif recipe=='disk_accretion':
-		a = -2.5+np.log10(Energy)/3.
+		a = -2.5+np.log10(PBH_mass)/3.
 		Emin = (10/PBH_mass)**0.5
-		Ts = 200
-		if Energy.any() > Emin:
-			out = Energy**(-a)*np.exp(-Energy/Ts)
-		else:
-			out = 0.
-	# print out, Energy
-	return out
+		# print a, Emin
+		Ts = 0.4*511e3
+		out = np.zeros_like(Energy)
+		Emin_mask = Energy > Emin
+		out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
+		out[~Emin_mask] = 0.
+		Emax_mask = Ts > Energy
+		out[~Emax_mask] = 0.
+	else:
+		from .__init__ import DarkAgesError as err
+		raise err('I cannot understand the recipe "{0}"'.format(recipe))
+	# print out, Emax_mask
+	return out/Energy #We will remultiply by Energy later in the code

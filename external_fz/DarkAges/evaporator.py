@@ -34,7 +34,7 @@ from scipy.integrate import trapz
 #particle_dict has structure 'particle_name':[mass,spin_label,spin_orientations, flavorfactor, antifactor, colorfactor, sigmoid_factor]
 particle_dict = {'gamma': [0,'1',2,1,1,1,0],
 			  'neutrino': [0,'1/2 N',1,3,2,1,0],
-			  'electron': [5.110e-6,'1/2 C',2,1,2,1,0],
+			  'electron': [5.110e-4,'1/2 C',2,1,2,1,0],
 				  'muon': [1.057e-1,'1/2 C',2,1,2,1,0],
 				   'tau': [1.777,'1/2 C',2,1,2,1,0],
 					'up': [2.2e-3,'1/2 C',2,1,2,3,1],
@@ -86,22 +86,6 @@ def PBH_spectrum_at_m( mass, logEnergies, *particles):
 	else:
 		raise DarkAgesError('There is no particles given')
 	return ret
-
-#def PBH_spectrum( PBH_mass_ini, *particles):
-#	ret = np.zeros((len(logEnergies), len(redshift)), dtype=np.float64)
-#	mass_at_z = PBH_mass_at_z(PBH_mass_ini, z_start =1e4)[-1,:]
-#	for idx, mass in enumerate(mass_at_z):
-#		ret[:,idx,None] = PBH_spectrum_at_m( mass, logEnergies, *particles )
-#	return ret
-
-#def full_spectrum( PBH_mass_ini ):
-#	ret = np.zeros((3, len(logEnergies), len(redshift)), dtype=np.float64)
-#	mass_at_z = PBH_mass_at_z(PBH_mass_ini, z_start =1e4)[-1,:]
-#	E = logConversion(logEnergies - 9)
-#	ret[0,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'electron')
-#	ret[1,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'gamma')
-#	ret[2,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'ALL')
-#	return E, redshift, ret
 
 def get_temperature_from_mass(mass):
 	u"""Returns the temperature of a black hole of a given mass
@@ -222,11 +206,12 @@ def PBH_F_of_M( PBH_mass, *particles ):
 			   '1/2 C':[0.147, 4.53],
 			       '1':[0.060, 6.04]}
 
-	def _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, simoid_factor = 0):
+	def _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor = 0):
 		if sigmoid_factor != 0:
 			T_BH = get_temperature_from_mass(PBH_mass)
 			Lam_QH = 0.3
 			sigma = 0.1
+			#activation = np.heaviside(sigmoid_factor,0.)
 			activation = 1. / (1. + np.exp(- sigmoid_factor*(np.log10(T_BH) - np.log10(Lam_QH))/sigma))
 			#activation = np.heaviside(sigmoid_factor*(T_BH - Lam_QH), 0.5)
 		else:
@@ -299,12 +284,6 @@ def PBH_dMdt(PBH_mass, time, scale=1):
 		return ret
 	else:
 		return 0
-
-#def PBH_mass_at_z(initial_PBH_mass, t_start = 1e10):
-#	u"""Solves the differential equation for the black hole mass with the starting
-#	conditions of an initial mass of :code:`initial_PBH_mass` at the initial
-#	time of :code:`t_start`
-#	"""
 
 def PBH_mass_at_z(initial_PBH_mass, redshift=None, z_start = 1e4):
 	def jac(mass, time, scale):

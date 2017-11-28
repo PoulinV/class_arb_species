@@ -7,6 +7,7 @@ Collection of functions needed to calculate the energy deposition.
 """
 
 from scipy.integrate import trapz
+from scipy.interpolate import interp1d
 from scipy.special import erf
 import os
 import sys
@@ -275,7 +276,7 @@ def scaling_boost_factor(redshift,spec_point,zh,fh):
 	ret = spec_point*(1 + fh*erf(redshift/(1+zh))/redshift**3)
 	return ret
 
-def f_function(logE, z_inj, z_dep, normalization,
+def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
                spec_phot, spec_elec, alpha=3, **kwargs):
 	u"""Returns the effective efficiency factor :math:`f_c (z)`
@@ -288,9 +289,10 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	Parameters
 	----------
+	transfer_functions_E : :obj:`array-like`
+		Array (:code:`shape = (l)`) containing the energy at which transfer functions are known (for interpolation)
 	logE : :obj:`array-like`
-		Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of teh particles
-		(in units of eV) to the base 10.
+		Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the kinetic energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
 	z_inj : :obj:`array-like`
 		Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
 		was injected (e.g. by annihilation or decay)
@@ -324,33 +326,65 @@ def f_function(logE, z_inj, z_dep, normalization,
 		Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
 		deposition given in :code:`z_dep`
 	"""
-
 	E = logConversion(logE)
-
 	how_to_integrate = kwargs.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
 		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
 
 	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
+	if (len(logE) == len(transfer_functions_E)):
+		if np.any(abs(logE - transfer_functions_E) <= 1e-5*logE):
+			need_to_interpolate = False
+		else:
+			need_to_interpolate = True
+	else:
+		need_to_interpolate = True
+
+	#if need_to_interpolate:
+	#	print 'I need to interpolate'
+	#	interpolated_transfer_elec = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
+	#	interpolated_transfer_phot = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
+	#else:
+	#	interpolated_transfer_elec = transfer_elec
+	#	interpolated_transfer_phot = transfer_phot
+
 	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
+	#int_phot = np.zeros( shape=(len(E)), dtype=np.float64)
+	#int_elec = np.zeros( shape=(len(E)), dtype=np.float64)
+	Enj = logConversion(transfer_functions_E)
 	for i in xrange(len(energy_integral)):
+		#if need_to_interpolate:
+		#	print 'step {0} out of {1} steps'.format(i,len(energy_integral))
+		#	from .interpolator import NDlogInterpolator
+		#	interpolated_transfer_phot[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_phot[i,:,i:],0,'lin-lin').__call__(logE)
+		#	interpolated_transfer_elec[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_elec[i,:,i:],0,'lin-lin').__call__(logE)
 		if how_to_integrate == 'logE':
 			for k in xrange(i,len(energy_integral[i])):
-<<<<<<< Updated upstream
-				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
-				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
-=======
 				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)*np.log(10)
 				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)*np.log(10)
->>>>>>> Stashed changes
+				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
+				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
+				#energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+				if not need_to_interpolate:
+					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
+					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
+				else:
+					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
+					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
 				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
 		elif how_to_integrate == 'energy':
 			for k in xrange(i,len(energy_integral[i])):
-				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
-				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
+				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
+				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
+				#energy_integral[i][k] = trapz( int_phot + int_elec, E )
+				if not need_to_interpolate:
+					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**1)
+					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**1)
+				else:
+					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**1)
+					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**1)
 				energy_integral[i][k] = trapz( int_phot + int_elec, E )
-
 	z_integral = np.zeros_like( z_dep, dtype=np.float64)
 	dummy = np.arange(1,len(z_inj)+1)
 	for i in xrange(len(z_integral)):
@@ -369,11 +403,23 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	return result
 
-<<<<<<< Updated upstream
-def log_fit(points,func,xgrid,exponent=1):
-=======
+def evaluate_transfer(transfer_functions_E,transfer,E,):
+	Enj = logConversion(transfer_functions_E)
+	result = np.zeros_like(E)
+	transfer_interpolation = lambda logE : np.interp(logE,transfer_functions_E,np.log1p(transfer))
+	#transfer_interpolation = interp1d(transfer_functions_E,transfer)
+	#transfer_interpolation = lambda logE : log_fit(transfer_functions_E,transfer,logE)
+	mask1 = np.logical_and( (E > Enj[0]), (E < Enj[-1]) )
+	result[mask1] = np.e**transfer_interpolation(np.log10(E[mask1])) - 1.
+	mask2 = np.logical_and( (E <= Enj[0]), (E >= 10.2) )
+	result[mask2] = transfer[0]
+	mask3  = E < 10.2
+	result[mask3] = 0.
+	mask4 =  E >= Enj[-1]
+	result[mask4] = transfer[-1]
+	return result
+
 def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
->>>>>>> Stashed changes
 	u"""Returns an array of interpolated points using the
 	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`-class.
 
@@ -407,8 +453,8 @@ def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
 	"""
 
 	from .interpolator import logInterpolator
-	tmp_interpolator = logInterpolator(points, func, exponent)
-	#tmp_interpolator = logLinearInterpolator(points, func, exponent)
+	tmp_interpolator = logInterpolator(points, func, exponent=exponent, scale=scale)
+	#tmp_interpolator = logLinearInterpolator(points, func, exponent=exponent, scale=scale)
 	out = tmp_interpolator(xgrid)
 	return out
 
@@ -520,6 +566,10 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 		out_el[unphysical_region_mask] = 0.
 		out_ph[unphysical_region_mask] = 0.
 		out_oth[unphysical_region_mask] = 0.
+		second_rescaling = trapz( (out_el+out_ph+out_oth)*logConversion(sampling_log10E), logConversion(sampling_log10E) ) / norm
+		out_el /= second_rescaling
+		out_ph /= second_rescaling
+		out_oth /= second_rescaling
 	else:
 		out_el = np.zeros_like(sampling_log10E).astype(np.float64)
 		out_ph = np.zeros_like(sampling_log10E).astype(np.float64)
@@ -581,11 +631,11 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **kwargs):
 	last = len(redshift) - last_idx
 	min_z = kwargs.get('lower_z_bound',0.)
 	max_z = kwargs.get('upper_z_bound',1e4)
-	print(50*'#')
-	print('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.')
-	print(50*'#'+'\n')
-	print('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n{:d}\n'.format( (last-first) + 2))
-	print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(min_z,f_heat[first],f_lya[first],f_ionH[first],f_ionHe[first],f_lowE[first]))
+	sys.stdout.write(50*'#'+'\n')
+	sys.stdout.write('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.\n')
+	sys.stdout.write(50*'#'+'\n\n')
+	sys.stdout.write('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n{:d}\n\n'.format( (last-first) + 2))
+	sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(min_z,f_heat[first],f_lya[first],f_ionH[first],f_ionHe[first],f_lowE[first]))
 	for idx in range(first,last):
-		print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(redshift[idx],f_heat[idx],f_lya[idx],f_ionH[idx],f_ionHe[idx],f_lowE[idx]))
-	print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(max_z,f_heat[last-1],f_lya[last-1],f_ionH[last-1],f_ionHe[last-1],f_lowE[last-1]))
+		sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(redshift[idx],f_heat[idx],f_lya[idx],f_ionH[idx],f_ionHe[idx],f_lowE[idx]))
+	sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(max_z,f_heat[last-1],f_lya[last-1],f_ionH[last-1],f_ionHe[last-1],f_lowE[last-1]))
