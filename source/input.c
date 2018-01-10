@@ -1071,6 +1071,27 @@ int input_read_parameters(
             }
           }
         }
+        class_call(parser_read_string(pfc,
+                                      "arbitrary_species_is_positive_definite",
+                                      &(string1),
+                                      &(flag1),
+                                      errmsg),
+                   errmsg,
+                   errmsg);
+
+        if (flag1 == _TRUE_) {
+          if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+            pba->arbitrary_species_is_positive_definite = _TRUE_;
+          }
+          else {
+            if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+              pba->arbitrary_species_is_positive_definite = _FALSE_;
+            }
+            else {
+              class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_is_positive_definite'",string1);
+            }
+          }
+        }
 
         class_read_double("arbitrary_species_logz_interpolation_above_z",pba->arbitrary_species_logz_interpolation_above_z);
         pba->arbitrary_species_table_is_log = _FALSE_;
@@ -3581,6 +3602,7 @@ int input_default_params(
   pba->arbitrary_species_logz_interpolation_above_z = 1e30; //arbitrarily large number, no log interpolation in the default case.
   pba->arbitrary_species_table_is_log = _FALSE_;
   pba->arbitrary_species_interpolation_is_linear = _TRUE_; //default: we linearly interpolate rho and rho'. Found to be better to avoid weird behavior at low-z.
+  pba->arbitrary_species_is_positive_definite = _FALSE_; //default: we allow for negative energy density.
   pba->output_H_at_z = _FALSE_; //output H at z for derived parameter.
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;

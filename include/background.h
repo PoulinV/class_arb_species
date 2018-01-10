@@ -120,6 +120,7 @@ struct background
   double * arbitrary_species_at_knot;
   double * arbitrary_species_density_at_knot;
   double * arbitrary_species_dd_at_knot;
+  short arbitrary_species_is_positive_definite;
   short arbitrary_species_table_is_log;
   double arbitrary_species_logz_interpolation_above_z;
   short arbitrary_species_interpolation_is_linear;
