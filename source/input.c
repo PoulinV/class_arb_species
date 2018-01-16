@@ -229,11 +229,11 @@ int input_init(
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
+                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr"};
+                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background};
+                                        cs_background, cs_background, cs_background, cs_spectra};
 
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
@@ -902,6 +902,14 @@ int input_read_parameters(
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
     if (ppt->gauge == newtonian)
       ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
+
+    /* Quadrature modes, 0 is qm_auto. */
+    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
+    /* Number of momentum bins */
+    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,-1,N_ncdm);
+
+    /* qmax, if relevant */
+    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm);
 
     /* Read temperatures: */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
@@ -2448,6 +2456,10 @@ if(pth->PBH_low_mass > 0.){
 
       class_read_double("r",ppm->r);
 
+      if (ppt->has_scalars == _FALSE_) {
+        class_read_double("A_s",ppm->A_s);
+      }
+
       if (ppm->r <= 0) {
         ppt->has_tensors = _FALSE_;
       }
@@ -3424,10 +3436,11 @@ if(pth->PBH_low_mass > 0.){
 
   /** - (h.6.) parameters related to nonlinear calculations */
 
-  class_read_double("halofit_dz",ppr->halofit_dz);
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
+  class_read_double("halofit_min_k_max",ppr->halofit_min_k_max);
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
+  class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3751,7 +3764,7 @@ int input_default_params(
   ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
-  ppt->k_max_for_pk=0.1;
+  ppt->k_max_for_pk=1.;
 
   ppt->gauge=synchronous;
 
@@ -3947,6 +3960,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* for bbn */
   sprintf(ppr->sBBN_file,__CLASSDIR__);
+<<<<<<< HEAD
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
@@ -3966,6 +3980,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->param_fz_4 = 0.;
   ppr->param_fz_5 = 0.;
   /* END  */
+=======
+  strcat(ppr->sBBN_file,"/bbn/sBBN_2017.dat");
+>>>>>>> master
 
   /* for recombination */
 
@@ -4166,11 +4183,11 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to nonlinear module
    */
 
-  ppr->halofit_dz=0.1;
-  ppr->halofit_min_k_nonlinear=0.0035;
+  ppr->halofit_min_k_nonlinear = 1.e-4;
+  ppr->halofit_min_k_max = 5.;
   ppr->halofit_k_per_decade = 80.;
-  ppr->halofit_sigma_precision=0.05;
-  ppr->halofit_min_k_max=5.;
+  ppr->halofit_sigma_precision = 0.05;
+  ppr->halofit_tol_sigma = 1.e-6;
 
   /**
    * - parameter related to lensing
@@ -4356,6 +4373,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   int input_verbose;
   int flag;
   int param;
+  short compute_sigma8 = _FALSE_;
 
   pfzw = (struct fzerofun_workspace *) voidpfzw;
 
@@ -4384,10 +4402,32 @@ int input_try_unknown_parameters(double * unknown_parameter,
                              errmsg),
              errmsg,
              errmsg);
+
   if (flag == _TRUE_)
     input_verbose = param;
   else
     input_verbose = 0;
+
+  /** - Optimise flags for sigma8 calculation.*/
+  for (i=0; i < unknown_parameters_size; i++) {
+    if (pfzw->target_name[i] == sigma8) {
+      compute_sigma8 = _TRUE_;
+    }
+  }
+  if (compute_sigma8 == _TRUE_) {
+    pt.k_max_for_pk=1.0;
+    pt.has_pk_matter=_TRUE_;
+    pt.has_perturbations = _TRUE_;
+    pt.has_cl_cmb_temperature = _FALSE_;
+    pt.has_cls = _FALSE_;
+    pt.has_cl_cmb_polarization = _FALSE_;
+    pt.has_cl_cmb_lensing_potential = _FALSE_;
+    pt.has_cl_number_count = _FALSE_;
+    pt.has_cl_lensing_potential=_FALSE_;
+    pt.has_density_transfers=_FALSE_;
+    pt.has_velocity_transfers=_FALSE_;
+
+  }
 
   /** - Do computations */
   if (pfzw->required_computation_stage >= cs_background){
@@ -4479,6 +4519,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
       else
         rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
+      break;
+    case sigma8:
+      output[i] = sp.sigma8-pfzw->target_value[i];
       break;
     }
   }
@@ -4644,6 +4687,13 @@ int input_get_guess(double *xguess,
         dxdy[index_guess] *= gamma/100;
 
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
+
+    case sigma8:
+      /* Assume linear relationship between A_s and sigma8 and fix coefficient
+         according to vanilla LambdaCDM. Should be good enough... */
+      xguess[index_guess] = 2.43e-9/0.87659*pfzw->target_value[index_guess];
+      dxdy[index_guess] = 2.43e-9/0.87659;
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
