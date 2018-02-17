@@ -1950,6 +1950,8 @@ if(pth->PBH_low_mass > 0.){
       ppt->has_cl_cmb_lensing_potential = _TRUE_;
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
+      class_read_double("A_lens",psp->A_lens);
+      printf("psp->A_lens %e\n", psp->A_lens);
     }
 
     if ((strstr(string1,"nCl") != NULL) || (strstr(string1,"NCl") != NULL) || (strstr(string1,"NCL") != NULL) ||
@@ -3898,7 +3900,7 @@ int input_default_params(
 
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
-
+  psp->A_lens = 1;
   /** - nonlinear structure */
 
   /** - lensing structure */

@@ -137,6 +137,7 @@ struct spectra {
   double alpha_k1; /**< parameter describing adiabatic versus isocurvature contribution at scale k1 (see Planck parameter papers) */
   double alpha_k2; /**< parameter describing adiabatic versus isocurvature contribution at scale k2 (see Planck parameter papers) */
 
+  double A_lens; /**< parameter rescaling the lCl as defined in 0803.2309 */
   //@}
 
   /** @name - table of pre-computed matter power spectrum P(k) values, and related quantities */
