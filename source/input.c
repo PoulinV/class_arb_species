@@ -1951,7 +1951,6 @@ if(pth->PBH_low_mass > 0.){
       ppt->has_perturbations = _TRUE_;
       ppt->has_cls = _TRUE_;
       class_read_double("A_lens",psp->A_lens);
-      printf("psp->A_lens %e\n", psp->A_lens);
     }
 
     if ((strstr(string1,"nCl") != NULL) || (strstr(string1,"NCl") != NULL) || (strstr(string1,"NCL") != NULL) ||
