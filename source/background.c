@@ -273,7 +273,7 @@ int background_functions(
   /* scalar field quantities */
   double phi, phi_prime;
   /* arbitrary species quantities */
-  double rho_arbitrary_species, drho_arbitrary_species;
+  double rho_arbitrary_species, drho_arbitrary_species, ddrho_arbitrary_species;
   /** - initialize local variables */
   a = pvecback_B[pba->index_bi_a];
   rho_tot = 0.;
@@ -427,7 +427,7 @@ int background_functions(
   if (pba->has_arbitrary_species == _TRUE_){
 
 
-    interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species);
+    interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
     // printf("z %e rho %e \n", 1./a_rel-1, rho_arbitrary_species);
     pvecback[pba->index_bg_rho_arbitrary_species] = rho_arbitrary_species * pow(pba->H0,2);
     rho_tot += pvecback[pba->index_bg_rho_arbitrary_species];
@@ -487,7 +487,8 @@ int interpolate_arbitrary_species_at_a(
                           struct background * pba,
                           double a,
                           double *rho,
-                          double *drho
+                          double *drho,
+                          double *ddrho
                           ) {
 
   int last_index;
@@ -548,11 +549,70 @@ int interpolate_arbitrary_species_at_a(
 
   *rho = result[0];
   *drho = result[1];
+  *ddrho = result[2];
 
-  // printf("z %e rho %e drho %e ddrho %e dddrho %e \n",z,*rho,*drho,result[2],result[3]);
+  // if(z>1 && z < 2.5)printf("z %e rho %e drho %e ddrho %e dddrho %e \n",z,*rho,*drho,result[2],result[3]);
   return _SUCCESS_;
 }
+double integrand_arb_species(struct background * pba,
+                                   double a){
 
+ double rho,drho,ddrho; //temporary storing quantities
+ interpolate_arbitrary_species_at_a(pba,a,&rho,&drho,&ddrho);
+ return ddrho*ddrho;
+
+}
+int romberg_integrate_arbitrary_species(struct background * pba,
+                                         double /*lower limit*/ a,
+                                         double /*upper limit*/ b,
+                                         size_t max_steps,
+                                         double /*desired accuracy*/ acc,
+                                         double *int_ddrho){
+   double R1[max_steps], R2[max_steps]; //buffers
+   double *Rp = &R1[0], *Rc = &R2[0]; //Rp is previous row, Rc is current row
+   double h = (b-a); //step size
+   double x,xa=a,xb=b;
+   size_t i;
+   size_t j;
+
+   Rp[0] = (integrand_arb_species(pba,xa)+integrand_arb_species(pba,xb))*h*.5; //first trapezoidal step
+   // dump_row(0, Rp);
+
+   for( i = 1; i < max_steps; ++i){
+      h /= 2.;
+      double c = 0;
+      size_t ep = 1 << (i-1); //2^(n-1)
+      for(j = 1; j <= ep; ++j){
+         x = a+(2*j-1)*h;
+         // printf("is_log %d x %e\n", is_log, x);
+         c += integrand_arb_species(pba,x);
+         // printf("c %e x %e j %d ep %d \n", c, x,j,ep);
+      }
+      Rc[0] = h*c + .5*Rp[0]; //R(i,0)
+
+      for(j = 1; j <= i; ++j){
+         double n_k = pow(4, j);
+         Rc[j] = (n_k*Rc[j-1] - Rp[j-1])/(n_k-1); //compute R(i,j)
+      }
+
+      //Dump ith column of R, R[i,i] is the best estimate so far
+      // dump_row(i, Rc);
+
+      if(i > 1 && fabs(Rp[i-1]-Rc[i]) < acc){
+         *int_ddrho = Rc[i-1];
+         return _SUCCESS_;
+      }
+
+      //swap Rn and Rc as we only need the last row
+      double *rt = Rp;
+      Rp = Rc;
+      Rc = rt;
+   }
+   // printf("Rp[max_steps-1] %e\n",Rp[max_steps-1]);
+   *int_ddrho = Rp[max_steps-1]; //return our best guess
+
+   return _SUCCESS_;
+}
 
 
 /**
@@ -628,7 +688,8 @@ int background_init(
   double Neff;
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
-
+  double int_ddrho,a1,a2;
+  int i;
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
@@ -732,6 +793,34 @@ int background_init(
                w_fld);
   }
 
+  if (pba->has_arbitrary_species == _TRUE_){
+    //We compute int_x1^x2 (f''(x))^2dx
+    pba->arbitrary_species_CV_score = 0;
+    for(i=0;i<pba->arbitrary_species_number_of_knots-1;i++){
+      int_ddrho = 0;
+      if(pba->arbitrary_species_redshift_at_knot[i+1]<=pba->arbitrary_species_logz_interpolation_above_z+0.1){
+        a1=1./(pba->arbitrary_species_redshift_at_knot[i+1]+1);
+        a2=1./(pba->arbitrary_species_redshift_at_knot[i]+1);
+        romberg_integrate_arbitrary_species(pba,a1,
+                                                a2,
+                                                30,
+                                                1e-4,
+                                                &int_ddrho);
+        // simpson_integrate_arb_species(pba,pba->arbitrary_species_redshift_at_knot[i],
+        //                                         pba->arbitrary_species_redshift_at_knot[i+1],
+        //                                         1000,
+        //                                         &int_ddrho);
+        // printf("int_ddrho %e\n",int_ddrho);
+      } //We only consider the low-z datasets.
+      else{
+        pba->arbitrary_species_CV_score+=0;
+      }
+      pba->arbitrary_species_CV_score+=int_ddrho;
+      }
+      pba->arbitrary_species_CV_score*=pba->arbitrary_species_CV_lambda;
+      printf("CV = %e\n", pba->arbitrary_species_CV_score);
+
+  }
   /* in verbose mode, inform the user about the value of the ncdm
      masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
      93 point something)*/
@@ -763,7 +852,27 @@ int background_init(
   return _SUCCESS_;
 
 }
+int simpson_integrate_arb_species(struct background * pba,
+                                         double /*lower limit*/ a,
+                                         double /*upper limit*/ b,
+                                         size_t max_steps,
+                                         double *int_ddrho){
+   double h = (b-a)/max_steps, s;
+   int i=1;
+   s = (integrand_arb_species(pba,a)+integrand_arb_species(pba,b));
+   while(i<max_steps){
+     s += 4 * integrand_arb_species(pba,(a + i * h));
+     i+=2;
+   }
+   i=2;
+   while(i<max_steps-1){
+     s += 2 * integrand_arb_species(pba,(a + i * h));
+     i+=2;
+   }
 
+   *int_ddrho = s*h/3;
+   return _SUCCESS_;
+}
 /**
  * Free all memory space allocated by background_init().
  *

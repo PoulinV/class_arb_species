@@ -120,6 +120,8 @@ struct background
   double * arbitrary_species_at_knot;
   double * arbitrary_species_density_at_knot;
   double * arbitrary_species_dd_at_knot;
+  double  arbitrary_species_CV_score;
+  double  arbitrary_species_CV_lambda;
   short arbitrary_species_is_positive_definite;
   short arbitrary_species_table_is_log;
   double arbitrary_species_logz_interpolation_above_z;
@@ -557,10 +559,24 @@ extern "C" {
                            struct background * pba,
                            double a,
                            double *rho,
-                           double *drho
+                           double *drho,
+                           double *ddrho
                          );
   int arbitrary_species_init( struct background *pba
                          );
+ int romberg_integrate_arbitrary_species(struct background * pba,
+                                          double /*lower limit*/ a,
+                                          double /*upper limit*/ b,
+                                          size_t max_steps,
+                                          double /*desired accuracy*/ acc,
+                                              double *int_ddrho);
+int simpson_integrate_arb_species(struct background * pba,
+                                         double /*lower limit*/ a,
+                                         double /*upper limit*/ b,
+                                         size_t max_steps,
+                                         double *int_ddrho);
+  double integrand_arb_species(struct background * pba,
+                                     double a);
 #ifdef __cplusplus
 }
 #endif

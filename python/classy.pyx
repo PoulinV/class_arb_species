@@ -881,6 +881,9 @@ cdef class Class:
         self.compute(["background"])
         return self.ba.H20
 
+    def CV_score(self):
+        self.compute(["background"])
+        return self.bg.arbitrary_species_CV_score
 
 
     def n_s(self):
@@ -918,6 +921,8 @@ cdef class Class:
     def rs_drag(self):
         self.compute(["thermodynamics"])
         return self.th.rs_d
+
+
 
     def angular_distance(self, z):
         """
