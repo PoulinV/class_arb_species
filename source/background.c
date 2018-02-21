@@ -818,7 +818,7 @@ int background_init(
       pba->arbitrary_species_CV_score+=int_ddrho;
       }
       pba->arbitrary_species_CV_score*=pba->arbitrary_species_CV_lambda;
-      printf("CV = %e\n", pba->arbitrary_species_CV_score);
+      // printf("CV = %e\n", pba->arbitrary_species_CV_score);
 
   }
   /* in verbose mode, inform the user about the value of the ncdm
