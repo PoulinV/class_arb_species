@@ -883,7 +883,7 @@ cdef class Class:
 
     def CV_score(self):
         self.compute(["background"])
-        return self.bg.arbitrary_species_CV_score
+        return self.ba.arbitrary_species_CV_score
 
 
     def n_s(self):
