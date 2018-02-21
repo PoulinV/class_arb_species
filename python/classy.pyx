@@ -1621,6 +1621,8 @@ cdef class Class:
                 value = self.ba.H19
             elif name == 'H20':
                 value = self.ba.H20
+            elif name == 'arbitrary_species_CV_score':
+                value = self.ba.arbitrary_species_CV_score
 	    ## BEGIN: Add own derived parameters
             elif name == 'annihilation':
                 value = self.th.annihilation

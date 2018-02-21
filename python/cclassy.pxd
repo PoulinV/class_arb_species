@@ -53,6 +53,7 @@ cdef extern from "class.h":
         double age
         double conformal_age
         double * m_ncdm_in_eV
+        double arbitrary_species_CV_score
         double Neff
         double Omega0_g
         double Omega0_b
