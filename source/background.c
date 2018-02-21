@@ -798,7 +798,7 @@ int background_init(
     pba->arbitrary_species_CV_score = 0;
     for(i=0;i<pba->arbitrary_species_number_of_knots-1;i++){
       int_ddrho = 0;
-      if(pba->arbitrary_species_redshift_at_knot[i+1]<=pba->arbitrary_species_logz_interpolation_above_z+0.1){
+      if(pba->arbitrary_species_redshift_at_knot[i+1]<=pba->arbitrary_species_CV_max_z){
         a1=1./(pba->arbitrary_species_redshift_at_knot[i+1]+1);
         a2=1./(pba->arbitrary_species_redshift_at_knot[i]+1);
         romberg_integrate_arbitrary_species(pba,a1,

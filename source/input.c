@@ -1103,6 +1103,7 @@ int input_read_parameters(
 
         class_read_double("arbitrary_species_logz_interpolation_above_z",pba->arbitrary_species_logz_interpolation_above_z);
         class_read_double("arbitrary_species_CV_lambda",pba->arbitrary_species_CV_lambda);
+        class_read_double("arbitrary_species_CV_max_z",pba->arbitrary_species_CV_max_z);
         pba->arbitrary_species_table_is_log = _FALSE_;
         class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
         class_read_list_of_doubles_or_default("arbitrary_species_density_at_knot",pba->arbitrary_species_density_at_knot,0.0,pba->arbitrary_species_number_of_knots);
@@ -3616,6 +3617,7 @@ int input_default_params(
   pba->arbitrary_species_number_of_knots = 0;
   pba->arbitrary_species_logz_interpolation_above_z = 1e30; //arbitrarily large number, no log interpolation in the default case.
   pba->arbitrary_species_CV_lambda = 1;
+  pba->arbitrary_species_CV_max_z = 1e30;//arbitrarily large number.
   pba->arbitrary_species_table_is_log = _FALSE_;
   pba->arbitrary_species_interpolation_is_linear = _TRUE_; //default: we linearly interpolate rho and rho'. Found to be better to avoid weird behavior at low-z.
   pba->arbitrary_species_is_positive_definite = _FALSE_; //default: we allow for negative energy density.
