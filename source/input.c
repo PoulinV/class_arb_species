@@ -582,7 +582,7 @@ int input_read_parameters(
   double n_cor=0.;
   double c_cor=0.;
 
-  double Omega_tot;
+  double Omega_tot, Omega_at_z, Omega_lambda;
 
   int i;
 
@@ -1008,6 +1008,28 @@ int input_read_parameters(
       }
     }
   }
+  /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
+  class_call(parser_read_string(pfc,
+                                "arbitrary_species_is_DE_today",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pba->arbitrary_species_is_DE_today = _TRUE_;
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pba->arbitrary_species_is_DE_today = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_is_DE_today'",string1);
+      }
+    }
+  }
 
 
   class_read_double("arbitrary_species_number_of_knots",pba->arbitrary_species_number_of_knots);
@@ -1037,6 +1059,29 @@ int input_read_parameters(
           }
         }
         class_call(parser_read_string(pfc,
+                                      "arbitrary_species_interpolation_is_log",
+                                      &(string1),
+                                      &(flag1),
+                                      errmsg),
+                   errmsg,
+                   errmsg);
+
+        if (flag1 == _TRUE_) {
+          if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+            pba->arbitrary_species_interpolation_is_log = _TRUE_;
+          }
+          else {
+            if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+              pba->arbitrary_species_interpolation_is_log = _FALSE_;
+            }
+            else {
+              class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_interpolation_is_log'",string1);
+            }
+          }
+        }
+        class_test(pba->arbitrary_species_interpolation_is_log == _TRUE_ && pba->arbitrary_species_interpolation_is_linear == _TRUE_,errmsg,
+                   "You cannot have both lin and log interpolation of the arb species density! Please choose one.");
+        class_call(parser_read_string(pfc,
                                       "arbitrary_species_is_positive_definite",
                                       &(string1),
                                       &(flag1),
@@ -1064,14 +1109,36 @@ int input_read_parameters(
         pba->arbitrary_species_table_is_log = _FALSE_;
         class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
         class_read_list_of_doubles_or_default("arbitrary_species_density_at_knot",pba->arbitrary_species_density_at_knot,0.0,pba->arbitrary_species_number_of_knots);
-        class_alloc(pba->arbitrary_species_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
+        class_read_list_of_doubles_or_default("arbitrary_species_fraction_at_knot",pba->arbitrary_species_fraction_at_knot,0.0,pba->arbitrary_species_number_of_knots);
+        class_alloc(pba->arbitrary_species_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message); // 4 entries: 0 = density, 1 = derivative  2 = double derivative 3 = triple derivative (required for spline interpolation later on)
         for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
-          pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_density_at_knot[i];
-          for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.;
+          //we attribute the first entry of the table: the density
+          if(pba->arbitrary_species_density_at_knot[i]!= 0.0){
+            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_density_at_knot[i];
+            if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+              pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_at_knot[i*4]);
+              pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
+            }
+            if(i==0)Omega_tot += pba->arbitrary_species_at_knot[0];
+
+          }
+          else if(pba->arbitrary_species_fraction_at_knot[i]!= 0.0){
+            Omega_lambda = 1 - (pba->Omega0_b+pba->Omega0_cdm + pba->Omega0_g+pba->Omega0_ur + pba->arbitrary_species_fraction_at_knot[0]);
+            Omega_at_z = (pba->Omega0_b+pba->Omega0_cdm)*pow(1+pba->arbitrary_species_redshift_at_knot[i],3)+(pba->Omega0_g+pba->Omega0_ur)*pow(1+pba->arbitrary_species_redshift_at_knot[i],4)+Omega_lambda;
+            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_fraction_at_knot[i]*Omega_at_z;
+            if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+              pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_at_knot[i*4]);
+              pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
+            }
+            if(i==0)Omega_tot += pba->arbitrary_species_fraction_at_knot[0];//Omega_tot is defined today; will be used to satisfy closure equation
+            // printf("%e %e %e\n",pba->arbitrary_species_at_knot[i*4],Omega_at_z,pba->arbitrary_species_fraction_at_knot[i]);
+          }
+          for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.; //we set other entries to 0, they will be attributed in background.c
+
         }
         // class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
-        if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
-        Omega_tot += pba->arbitrary_species_at_knot[0];
+        if(pba->arbitrary_species_interpolation_is_linear == _FALSE_ && pba->arbitrary_species_interpolation_is_log == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
+
         // printf("pba->arbitrary_species_density_at_knot[0] %e Omega_tot %e \n", pba->arbitrary_species_at_knot[0],Omega_tot);
 
   }
@@ -1149,12 +1216,11 @@ int input_read_parameters(
           pba->Omega0_k,
           Omega_tot);
   */
-  // if(pba->arbitrary_species_number_of_knots != 0){
-  //   //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
-  //   for(n=0;n<pba->arbitrary_species_number_of_knots;n++)pba->arbitrary_species_at_knot[n*4]+=pba->Omega0_lambda;
-  //   // pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
-  //   pba->Omega0_lambda = 0.;
-  // }
+  if(pba->arbitrary_species_is_DE_today == _TRUE_){
+    //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
+    pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
+    pba->Omega0_lambda = 0.;
+  }
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
@@ -3645,8 +3711,10 @@ int input_default_params(
   pba->arbitrary_species_CV_max_z = 1e30;//arbitrarily large number.
   pba->arbitrary_species_table_is_log = _FALSE_;
   pba->arbitrary_species_interpolation_is_linear = _TRUE_; //default: we linearly interpolate rho and rho'. Found to be better to avoid weird behavior at low-z.
+  pba->arbitrary_species_interpolation_is_log = _FALSE_; //default: we linearly interpolate rho and rho'. Found to be better to avoid weird behavior at low-z.
   pba->arbitrary_species_is_positive_definite = _FALSE_; //default: we allow for negative energy density.
   pba->output_H_at_z = _FALSE_; //output H at z for derived parameter.
+  pba->arbitrary_species_is_DE_today = _FALSE_; //output H at z for derived parameter.
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->use_ppf = _TRUE_;

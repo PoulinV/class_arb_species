@@ -389,9 +389,9 @@ int background_functions(
 
   /* Lambda */
   if (pba->has_lambda == _TRUE_) {
-    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
-    rho_tot += pvecback[pba->index_bg_rho_lambda];
-    p_tot -= pvecback[pba->index_bg_rho_lambda];
+      pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
+      rho_tot += pvecback[pba->index_bg_rho_lambda];
+      p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
   /* fluid with w(a) and constant cs2 */
@@ -437,12 +437,14 @@ int background_functions(
    p_tot += -a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //will be some function of df/da
    pvecback[pba->index_bg_p_arbitrary_species] = a_rel/3*drho_arbitrary_species* pow(pba->H0,2);
   //  printf("z %e rho %e p %e ptot %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_arbitrary_species],a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species],p_tot);
-   pvecback[pba->index_bg_rho_arbitrary_species] += pba->Omega0_lambda * pow(pba->H0,2); //We finally store the cosmological constant in our arbitrary species for output
+
+   pvecback[pba->index_bg_w_arbitrary_species] = pvecback[pba->index_bg_p_arbitrary_species]/pvecback[pba->index_bg_rho_arbitrary_species];
    if(pba->arbitrary_species_is_positive_definite == _TRUE_){
      class_test(pvecback[pba->index_bg_rho_arbitrary_species] < 0.,
                 pba->error_message,
                 "rho_arbitrary_species = %e instead of strictly positive or zero (if you want to consider negative rho_arbitrary_species, switch arbitrary_species_is_positive_definite to no)",pvecback[pba->index_bg_rho_arbitrary_species]);
    }
+   pvecback[pba->index_bg_Omega_arbitrary_species] = pvecback[pba->index_bg_rho_arbitrary_species]/rho_tot;
   }
 
 
@@ -531,6 +533,19 @@ int interpolate_arbitrary_species_at_a(
              pba->error_message,
              pba->error_message);
     }
+    else if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+      class_call(array_interpolate_linear(pba->arbitrary_species_redshift_at_knot,
+                                       pba->arbitrary_species_number_of_knots,
+                                       pba->arbitrary_species_at_knot,
+                                       4,
+                                       log10(z+1),
+                                       &last_index,
+                                       result,
+                                       4,
+                                       pba->error_message),
+              pba->error_message,
+              pba->error_message);
+    }
     else{
       class_call(array_interpolate_spline(pba->arbitrary_species_redshift_at_knot,
                                           pba->arbitrary_species_number_of_knots,
@@ -546,12 +561,18 @@ int interpolate_arbitrary_species_at_a(
                  pba->error_message);
     }
 
+  if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+    *rho = pow(10,result[0]);
+    *drho = pow(10,result[1]);
+    *ddrho = pow(10,result[2]);
+  }else{
+    *rho = result[0];
+    *drho = result[1];
+    *ddrho = result[2];
+  }
 
-  *rho = result[0];
-  *drho = result[1];
-  *ddrho = result[2];
 
-  // if(z>1 && z < 2.5)printf("z %e rho %e drho %e ddrho %e dddrho %e \n",z,*rho,*drho,result[2],result[3]);
+  // printf("z %e rho %e drho %e ddrho %e dddrho %e \n",1+z,*rho,*drho,result[2],result[3]);
   return _SUCCESS_;
 }
 double integrand_arb_species(struct background * pba,
@@ -1017,7 +1038,7 @@ int background_free_input(
     free(pba->arbitrary_species_at_knot);
     free(pba->arbitrary_species_density_at_knot);
     free(pba->arbitrary_species_redshift_at_knot);
-    if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)free(pba->arbitrary_species_dd_at_knot);
+    if(pba->arbitrary_species_interpolation_is_linear == _FALSE_ && pba->arbitrary_species_interpolation_is_log == _FALSE_)free(pba->arbitrary_species_dd_at_knot);
   }
   return _SUCCESS_;
 }
@@ -1149,6 +1170,8 @@ int background_indices(
   /* - index for arbitrary species */
   class_define_index(pba->index_bg_rho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_p_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_w_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_Omega_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
 
 
   /* - put here additional ingredients that you want to appear in the
@@ -1261,6 +1284,7 @@ int background_indices(
 
 int arbitrary_species_init( struct background *pba
                          ) {
+
      /** - --> second derivative with respect to tau of rho_arbitrary_species (in view of spline interpolation) */
      class_call(array_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
                                                 pba->arbitrary_species_number_of_knots,
@@ -1297,7 +1321,7 @@ int arbitrary_species_init( struct background *pba
                  pba->error_message);
 
       /** - --> if necessary, fill a table of secondary derivative in view of spline interpolation */
-      if(pba->arbitrary_species_interpolation_is_linear == _FALSE_){
+      if(pba->arbitrary_species_interpolation_is_linear == _FALSE_ && pba->arbitrary_species_interpolation_is_log == _FALSE_){
         class_call(array_spline_table_lines(pba->arbitrary_species_redshift_at_knot,
                                            pba->arbitrary_species_number_of_knots,
                                            pba->arbitrary_species_at_knot,
@@ -2130,7 +2154,7 @@ int background_solve(
       printf("    Scalar field details:\n");
       printf("     -> Omega_scf = %g, wished %g\n",
              pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
-      if(pba->has_lambda == _TRUE_)
+      if(pba->has_lambda == _TRUE_ )
 	printf("     -> Omega_Lambda = %g, wished %g\n",
                pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
       printf("     -> parameters: [lambda, alpha, A, B] = \n");
@@ -2511,6 +2535,8 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_cdm",pba->has_cdm);
   class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)w_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)Omega_arbitrary_species",pba->has_arbitrary_species);
   if (pba->has_ncdm == _TRUE_){
     for (n=0; n<pba->N_ncdm; n++){
       sprintf(tmp,"(.)rho_ncdm[%d]",n);
@@ -2569,6 +2595,8 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_arbitrary_species],pba->has_arbitrary_species,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_arbitrary_species],pba->has_arbitrary_species,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_w_arbitrary_species],pba->has_arbitrary_species,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_Omega_arbitrary_species],pba->has_arbitrary_species,storeidx);
     if (pba->has_ncdm == _TRUE_){
       for (n=0; n<pba->N_ncdm; n++){
         class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);

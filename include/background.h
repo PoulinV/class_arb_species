@@ -69,6 +69,7 @@ struct background
   double H19;
   double H20;
   short output_H_at_z;
+  short arbitrary_species_is_DE_today;
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$: photons */
 
   double T_cmb; /**< \f$ T_{cmb} \f$: current CMB temperature in Kelvins */
@@ -137,8 +138,10 @@ struct background
   short arbitrary_species_table_is_log;
   double arbitrary_species_logz_interpolation_above_z;
   short arbitrary_species_interpolation_is_linear;
+  short arbitrary_species_interpolation_is_log;
   // double * arbitrary_species_dd_density_at_knot;
   double * arbitrary_species_redshift_at_knot;
+  double * arbitrary_species_fraction_at_knot;
   int arbitrary_species_number_of_knots;
 
   int N_ncdm;                            /**< Number of distinguishable ncdm species */
@@ -242,6 +245,8 @@ struct background
   /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
   int index_bg_rho_arbitrary_species;
   int index_bg_p_arbitrary_species;
+  int index_bg_w_arbitrary_species;
+  int index_bg_Omega_arbitrary_species;
 
   /* end of vector in normal format, now quantities in long format */
 
