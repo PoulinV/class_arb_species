@@ -272,6 +272,7 @@ int background_functions(
   double a;
   /* scalar field quantities */
   double phi, phi_prime;
+  double dwda;
   /* arbitrary species quantities */
   double rho_arbitrary_species, drho_arbitrary_species, ddrho_arbitrary_species, Omega0_arb_species;
   /** - initialize local variables */
@@ -436,8 +437,11 @@ int background_functions(
                "rho_tot = %e instead of strictly positive",rho_tot);
   if(pba->arbitrary_species_interpolation_is_log == _TRUE_) Omega0_arb_species =pow(10,pba->arbitrary_species_at_knot[0]);
   else Omega0_arb_species = pba->arbitrary_species_at_knot[0];
-   if(a_rel < 1)pvecback[pba->index_bg_w_arbitrary_species] = log(fabs(pvecback[pba->index_bg_rho_arbitrary_species])/Omega0_arb_species/pow(pba->H0,2))/log(a_rel)/3 -1;
-   else pvecback[pba->index_bg_w_arbitrary_species] = -1;
+   if(a_rel < 1) pvecback[pba->index_bg_w_arbitrary_species] = -log(sqrt(pvecback[pba->index_bg_rho_arbitrary_species]*pvecback[pba->index_bg_rho_arbitrary_species])/Omega0_arb_species/pow(pba->H0,2))/log(a_rel)/3 -1;
+   else pvecback[pba->index_bg_w_arbitrary_species] = -1.0;
+
+
+
    // printf("pvecback[pba->index_bg_rho_arbitrary_species]/Omega0_arb_species %e a_rel %e w %e\n",pvecback[pba->index_bg_rho_arbitrary_species]/Omega0_arb_species,a_rel,pvecback[pba->index_bg_w_arbitrary_species]);
    // p_tot += a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //assume w slowly varying function of a... can we improve?
 
@@ -462,6 +466,21 @@ int background_functions(
       that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
   pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
+  //
+  // if(pba->has_arbitrary_species == _TRUE_){
+  //   //OLD STUFF; will be calculated numerically
+  //   //Once H is known we compute dwdtau for perturbations
+  //   // if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
+  //   // if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
+  //   if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
+  //   else dwda = 0;
+  //   pvecback[pba->index_bg_dw_arbitrary_species] =a_rel*a_rel*pvecback[pba->index_bg_H]*dwda;
+  //   // printf("A %e B %e a_rel %e log(a_rel) %e \n",drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel, (pvecback[pba->index_bg_w_arbitrary_species]+1),a_rel,log(a_rel));
+  //   // printf("aprime %e dwda %e pvecback[pba->index_bg_rho_arbitrary_species] %e drho_arbitrary_species* pow(pba->H0,2) %e 1+w %e final %e \n",a_rel*a_rel*pvecback[pba->index_bg_H],dwda,pvecback[pba->index_bg_rho_arbitrary_species],drho_arbitrary_species* pow(pba->H0,2),pvecback[pba->index_bg_w_arbitrary_species]+1,pvecback[pba->index_bg_dw_arbitrary_species]);
+  //   // pvecback[pba->index_bg_dw_arbitrary_species] =drho_arbitrary_species;
+  //    // pvecback[pba->index_bg_dw_arbitrary_species] = 0;
+  // }
+
 
   /** - compute derivative of H with respect to conformal time */
   pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
@@ -576,8 +595,8 @@ int interpolate_arbitrary_species_at_a(
 
   if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
     *rho = pow(10,result[0]);
-    *drho = pow(10,result[1]);
-    *ddrho = pow(10,result[2]);
+    *drho = result[1]*pow(10,result[0])/(1+z);//result[1] = d(log10(rho))/dlogz=drho/dz*(1+z)/rho
+    *ddrho = result[2];//nb: never used, but this is dd(log10(rho))
   }else{
     *rho = result[0];
     *drho = result[1];
@@ -871,7 +890,7 @@ int background_init(
                w_fld);
   }
 
-  if (pba->has_arbitrary_species == _TRUE_){
+  if (pba->has_arbitrary_species == _TRUE_ && pba->compute_CV_score == _TRUE_){
     //We compute int_x1^x2 (f''(x))^2dx
     pba->arbitrary_species_CV_score = 0;
     for(i=0;i<pba->arbitrary_species_number_of_knots-1;i++){
@@ -1184,6 +1203,8 @@ int background_indices(
   class_define_index(pba->index_bg_rho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_p_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_w_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_dw_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_ddw_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_Omega_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
 
 
@@ -1298,53 +1319,55 @@ int background_indices(
 int arbitrary_species_init( struct background *pba
                          ) {
 
-     /** - --> second derivative with respect to tau of rho_arbitrary_species (in view of spline interpolation) */
-     class_call(array_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
-                                                pba->arbitrary_species_number_of_knots,
-                                                pba->arbitrary_species_at_knot,
-                                                4,
-                                                0,
-                                                2,
-                                                _SPLINE_NATURAL_,
-                                                pba->error_message),
-                pba->error_message,
-                pba->error_message);
-     /** - --> first derivative with respect to tau of rho_arbitrary_species (using spline interpolation) */
-     class_call(array_derive_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
-                                                       pba->arbitrary_species_number_of_knots,
-                                                       pba->arbitrary_species_at_knot,
-                                                       4,
-                                                       0,
-                                                       2,
-                                                       1,
-                                                       pba->error_message),
-                pba->error_message,
-                pba->error_message);
+  /** - --> second derivative with respect to tau of rho_arbitrary_species (in view of spline interpolation) */
+  class_call(array_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
+                                             pba->arbitrary_species_number_of_knots,
+                                             pba->arbitrary_species_at_knot,
+                                             4,
+                                             0,
+                                             2,
+                                             _SPLINE_EST_DERIV_,
+                                             pba->error_message),
+             pba->error_message,
+             pba->error_message);
+  /** - --> first derivative with respect to tau of rho_arbitrary_species (using spline interpolation) */
+  class_call(array_derive_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
+                                                    pba->arbitrary_species_number_of_knots,
+                                                    pba->arbitrary_species_at_knot,
+                                                    4,
+                                                    0,
+                                                    2,
+                                                    1,
+                                                    pba->error_message),
+             pba->error_message,
+             pba->error_message);
 
-      /** - --> third derivative with respect to tau of rho_arbitrary_species (in view of spline interpolation) */
-      class_call(array_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
-                                                 pba->arbitrary_species_number_of_knots,
-                                                 pba->arbitrary_species_at_knot,
-                                                 4,
-                                                 1,
-                                                 3,
-                                                 _SPLINE_NATURAL_,
-                                                 pba->error_message),
+   /** - --> third derivative with respect to tau of rho_arbitrary_species (in view of spline interpolation) */
+   class_call(array_spline_table_line_to_line(pba->arbitrary_species_redshift_at_knot,
+                                              pba->arbitrary_species_number_of_knots,
+                                              pba->arbitrary_species_at_knot,
+                                              4,
+                                              1,
+                                              3,
+                                              _SPLINE_EST_DERIV_,
+                                              pba->error_message),
+              pba->error_message,
+              pba->error_message);
+
+   /** - --> if necessary, fill a table of secondary derivative in view of spline interpolation */
+   if(pba->arbitrary_species_interpolation_is_linear == _FALSE_){
+     class_call(array_spline_table_lines(pba->arbitrary_species_redshift_at_knot,
+                                        pba->arbitrary_species_number_of_knots,
+                                        pba->arbitrary_species_at_knot,
+                                        4,
+                                        pba->arbitrary_species_dd_at_knot,
+                                        _SPLINE_EST_DERIV_,
+                                        pba->error_message),
                  pba->error_message,
                  pba->error_message);
 
-      /** - --> if necessary, fill a table of secondary derivative in view of spline interpolation */
-      if(pba->arbitrary_species_interpolation_is_linear == _FALSE_){
-        class_call(array_spline_table_lines(pba->arbitrary_species_redshift_at_knot,
-                                           pba->arbitrary_species_number_of_knots,
-                                           pba->arbitrary_species_at_knot,
-                                           4,
-                                           pba->arbitrary_species_dd_at_knot,
-                                           _SPLINE_EST_DERIV_,
-                                           pba->error_message),
-                    pba->error_message,
-                    pba->error_message);
-      }
+}
+
 
         // for(int i=0;i<pba->arbitrary_species_number_of_knots*4;i++){
         //   printf("pba->arbitrary_species_at_knot %e\n",pba->arbitrary_species_at_knot[i]);
@@ -2137,6 +2160,36 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
+
+if(pba->has_arbitrary_species == _TRUE_){
+  //we need dwdtau for later.
+  class_call(array_spline_table_line_to_line(pba->tau_table,
+                                            pba->bt_size,
+                                            pba->background_table,
+                                            pba->bg_size,
+                                            pba->index_bg_w_arbitrary_species,
+                                            pba->index_bg_ddw_arbitrary_species,
+                                             _SPLINE_EST_DERIV_,
+                                             pba->error_message),
+             pba->error_message,
+             pba->error_message);
+
+  class_call(array_derive_spline_table_line_to_line(pba->tau_table,
+                                                    pba->bt_size,
+                                                    pba->background_table,
+                                                    pba->bg_size,
+                                                    pba->index_bg_w_arbitrary_species,
+                                                    pba->index_bg_ddw_arbitrary_species,
+                                                    pba->index_bg_dw_arbitrary_species,
+                                                    pba->error_message),
+             pba->error_message,
+             pba->error_message);
+
+}
+
+
+
+
   /** - compute remaining "related parameters"
    *     - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
@@ -2549,6 +2602,7 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)w_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)dw_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)Omega_arbitrary_species",pba->has_arbitrary_species);
   if (pba->has_ncdm == _TRUE_){
     for (n=0; n<pba->N_ncdm; n++){
@@ -2609,6 +2663,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_arbitrary_species],pba->has_arbitrary_species,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_arbitrary_species],pba->has_arbitrary_species,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_w_arbitrary_species],pba->has_arbitrary_species,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_dw_arbitrary_species],pba->has_arbitrary_species,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_Omega_arbitrary_species],pba->has_arbitrary_species,storeidx);
     if (pba->has_ncdm == _TRUE_){
       for (n=0; n<pba->N_ncdm; n++){

@@ -93,6 +93,12 @@ struct background
 		     not [delta p/delta rho] in the synchronous or
 		     newtonian gauge!!!) */
 
+  double cs2_arbitrary_species; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
+		     in the frame comoving with the fluid (so, this is
+		     not [delta p/delta rho] in the synchronous or
+		     newtonian gauge!!!) */
+
+  short compute_CV_score;
 
   short use_ppf; /**< flag switching on PPF perturbation equations
                     instead of true fluid equations for
@@ -246,6 +252,8 @@ struct background
   int index_bg_rho_arbitrary_species;
   int index_bg_p_arbitrary_species;
   int index_bg_w_arbitrary_species;
+  int index_bg_dw_arbitrary_species;
+  int index_bg_ddw_arbitrary_species;
   int index_bg_Omega_arbitrary_species;
 
   /* end of vector in normal format, now quantities in long format */

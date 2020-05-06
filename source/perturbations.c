@@ -210,6 +210,9 @@ int perturb_init(
 
   }
 
+  if(ppt->arbitrary_species_has_perturbations == _FALSE_){
+    pba->has_arbitrary_species = _FALSE_;
+  }
   if (pba->has_dcdm == _TRUE_) {
 
     class_test((ppt->has_cdi == _TRUE_) || (ppt->has_bi == _TRUE_) || (ppt->has_nid == _TRUE_) || (ppt->has_niv == _TRUE_),
@@ -445,6 +448,10 @@ int perturb_init(
 
   free(pppw);
 
+  if(ppt->arbitrary_species_has_perturbations == _FALSE_ && pba->has_arbitrary_species == _FALSE_){
+    //this combination only occurs if we have enforced no perts for arbitrary_species.
+    pba->has_arbitrary_species = _TRUE_;
+  }
   return _SUCCESS_;
 }
 
@@ -586,6 +593,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_cdm = _FALSE_;
   ppt->has_source_delta_dcdm = _FALSE_;
   ppt->has_source_delta_fld = _FALSE_;
+  ppt->has_source_delta_arbitrary_species = _FALSE_;
   ppt->has_source_delta_scf = _FALSE_;
   ppt->has_source_delta_dr = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
@@ -597,6 +605,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_theta_cdm = _FALSE_;
   ppt->has_source_theta_dcdm = _FALSE_;
   ppt->has_source_theta_fld = _FALSE_;
+  ppt->has_source_theta_arbitrary_species = _FALSE_;
   ppt->has_source_theta_scf = _FALSE_;
   ppt->has_source_theta_dr = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
@@ -681,6 +690,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_delta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_delta_fld = _TRUE_;
+        if (pba->has_arbitrary_species == _TRUE_)
+          ppt->has_source_delta_arbitrary_species = _TRUE_;
         if (pba->has_scf == _TRUE_)
           ppt->has_source_delta_scf = _TRUE_;
         if (pba->has_ur == _TRUE_)
@@ -707,6 +718,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_theta_dcdm = _TRUE_;
         if (pba->has_fld == _TRUE_)
           ppt->has_source_theta_fld = _TRUE_;
+        if (pba->has_arbitrary_species == _TRUE_)
+          ppt->has_source_theta_arbitrary_species = _TRUE_;
         if (pba->has_scf == _TRUE_)
           ppt->has_source_theta_scf = _TRUE_;
         if (pba->has_ur == _TRUE_)
@@ -765,6 +778,7 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
       class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
+      class_define_index(ppt->index_tp_delta_arbitrary_species,  ppt->has_source_delta_arbitrary_species, index_type,1);
       class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_type,1);
       class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
@@ -776,6 +790,7 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
       class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
+      class_define_index(ppt->index_tp_theta_arbitrary_species,  ppt->has_source_theta_arbitrary_species, index_type,1);
       class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_type,1);
       class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
@@ -2553,6 +2568,11 @@ int perturb_prepare_output(struct background * pba,
       class_store_columntitle(ppt->scalar_titles, "delta_scf", pba->has_scf);
       class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
 
+      class_store_columntitle(ppt->scalar_titles, "delta_arbitrary_species", pba->has_arbitrary_species);
+      class_store_columntitle(ppt->scalar_titles, "delta_p_arbitrary_species", pba->has_arbitrary_species);
+      class_store_columntitle(ppt->scalar_titles, "theta_arbitrary_species", pba->has_arbitrary_species);
+
+
       ppt->number_of_scalar_titles =
         get_number_of_titles(ppt->scalar_titles);
     }
@@ -3116,6 +3136,9 @@ int perturb_vector_init(
       class_define_index(ppv->index_pt_Gamma_fld,pba->has_fld,index_pt,1); /* Gamma variable of PPF scheme */
     }
 
+    class_define_index(ppv->index_pt_delta_arbitrary_species,pba->has_arbitrary_species,index_pt,1); /* fluid density */
+    class_define_index(ppv->index_pt_theta_arbitrary_species,pba->has_arbitrary_species,index_pt,1); /* fluid velocity */
+
     /* scalar field */
 
     class_define_index(ppv->index_pt_phi_scf,pba->has_scf,index_pt,1); /* scalar field density */
@@ -3527,6 +3550,14 @@ int perturb_vector_init(
           ppv->y[ppv->index_pt_Gamma_fld] =
             ppw->pv->y[ppw->pv->index_pt_Gamma_fld];
         }
+      }
+
+      if(pba->has_arbitrary_species == _TRUE_){
+        ppv->y[ppv->index_pt_delta_arbitrary_species] =
+          ppw->pv->y[ppw->pv->index_pt_delta_arbitrary_species];
+
+        ppv->y[ppv->index_pt_theta_arbitrary_species] =
+          ppw->pv->y[ppw->pv->index_pt_theta_arbitrary_species];
       }
 
       if (pba->has_scf == _TRUE_) {
@@ -4078,6 +4109,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
   double a,a_prime_over_a;
   double w_fld,dw_over_da_fld,integral_fld;
+  double w_arbitrary_species;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha, alpha_prime;
   double delta_dr=0;
   double q,epsilon,k2;
@@ -4242,6 +4274,19 @@ int perturb_initial_conditions(struct precision * ppr,
 
           ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature
         }
+        /* if use_ppf == _TRUE_, y[ppw->pv->index_pt_Gamma_fld] will be automatically set to zero, and this is what we want (although one could probably work out some small nonzero initial conditions: TODO) */
+      }
+
+      /* fluid (assumes wa=0, if this is not the case the
+         fluid will catch anyway the attractor solution) */
+      if (pba->has_arbitrary_species == _TRUE_) {
+
+          w_arbitrary_species = ppw->pvecback[pba->index_bg_w_arbitrary_species];
+
+          ppw->pv->y[ppw->pv->index_pt_delta_arbitrary_species] = - ktau_two/4.*(1.+w_arbitrary_species)*(4.-3.*pba->cs2_arbitrary_species)/(4.-6.*w_arbitrary_species+3.*pba->cs2_arbitrary_species) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC: curvature
+
+          ppw->pv->y[ppw->pv->index_pt_theta_arbitrary_species] = - (1+w_arbitrary_species)*k*ktau_three/4.*pba->cs2_arbitrary_species/(4.-6.*w_arbitrary_species+3.*pba->cs2_arbitrary_species) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature //VP: we evolve (1+w)*theta as it is numerically more stable
+
         /* if use_ppf == _TRUE_, y[ppw->pv->index_pt_Gamma_fld] will be automatically set to zero, and this is what we want (although one could probably work out some small nonzero initial conditions: TODO) */
       }
 
@@ -4480,6 +4525,12 @@ int perturb_initial_conditions(struct precision * ppr,
 
         ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+w_fld)*a_prime_over_a*alpha;
         ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
+      }
+      if ((pba->has_arbitrary_species == _TRUE_)) {
+
+        w_arbitrary_species = ppw->pvecback[pba->index_bg_w_arbitrary_species];
+        ppw->pv->y[ppw->pv->index_pt_delta_arbitrary_species] += 3*(1.+w_arbitrary_species)*a_prime_over_a*alpha;
+        ppw->pv->y[ppw->pv->index_pt_theta_arbitrary_species] += (1.+w_arbitrary_species)*k*k*alpha;//VP: we evolve (1+w)*theta as it is numerically more stable
       }
 
       /* scalar field: check */
@@ -5342,6 +5393,7 @@ int perturb_total_stress_energy(
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w_fld,dw_over_da_fld,integral_fld;
+  double w_arbitrary_species;
   double gwncdm;
   double rho_relativistic;
   double rho_dr_over_f;
@@ -5637,6 +5689,17 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
       ppw->delta_p += pba->cs2_fld * ppw->delta_rho_fld;
 
+    }
+
+    if(pba->has_arbitrary_species == _TRUE_){
+
+      w_arbitrary_species = ppw->pvecback[pba->index_bg_w_arbitrary_species];
+      ppw->delta_rho_arbitrary_species = ppw->pvecback[pba->index_bg_rho_arbitrary_species]*y[ppw->pv->index_pt_delta_arbitrary_species];
+      ppw->rho_plus_p_theta_arbitrary_species = ppw->pvecback[pba->index_bg_rho_arbitrary_species]*y[ppw->pv->index_pt_theta_arbitrary_species]; //VP: we evolve (1+w)*theta as it is numerically more stable; no need to multiply rho by 1+w here.
+
+      ppw->delta_rho += ppw->delta_rho_arbitrary_species;
+      ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_arbitrary_species;
+      ppw->delta_p += pba->cs2_arbitrary_species * ppw->delta_rho_arbitrary_species;
     }
 
     /* don't add species here, add them before the fluid contribution: because of the PPF scheme that one must be the last one! */
@@ -6179,6 +6242,10 @@ int perturb_sources(
     if (ppt->has_source_delta_fld == _TRUE_) {
       _set_source_(ppt->index_tp_delta_fld) = ppw->delta_rho_fld/pvecback[pba->index_bg_rho_fld];
     }
+    /* delta_arbitrary_species */
+    if (ppt->has_source_delta_arbitrary_species == _TRUE_) {
+      _set_source_(ppt->index_tp_delta_arbitrary_species) = ppw->delta_rho_arbitrary_species/pvecback[pba->index_bg_rho_arbitrary_species];
+    }
 
     /* delta_scf */
     if (ppt->has_source_delta_scf == _TRUE_) {
@@ -6256,6 +6323,10 @@ int perturb_sources(
       class_call(background_w_fld(pba,a_rel*pba->a_today,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
       _set_source_(ppt->index_tp_theta_fld) = ppw->rho_plus_p_theta_fld/(1.+w_fld)/pvecback[pba->index_bg_rho_fld];
+    }
+    /* theta_arbitrary_species */
+    if (ppt->has_source_theta_arbitrary_species == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_arbitrary_species) = ppw->rho_plus_p_theta_arbitrary_species/(pvecback[pba->index_bg_p_arbitrary_species]+pvecback[pba->index_bg_rho_arbitrary_species]);
     }
 
     /* theta_scf */
@@ -6395,7 +6466,9 @@ int perturb_print_variables(double tau,
   /** - ncdm sector ends */
   double phi=0.,psi=0.,alpha=0.;
   double delta_temp=0., delta_chi=0.;
-
+  double delta_arbitrary_species =0;
+  double delta_p_arbitrary_species =0;
+  double theta_arbitrary_species =0;
   double a,a2,H;
   int idx,index_q, storeidx;
   double *dataptr;
@@ -6644,50 +6717,58 @@ int perturb_print_variables(double tau,
 
     }
 
-    /* converting synchronous variables to newtonian ones */
-    if (ppt->gauge == synchronous) {
-
-      /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
-
-      delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
-      theta_g += k*k*alpha;
-
-      delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
-      theta_b += k*k*alpha;
-
-      if (pba->has_ur == _TRUE_) {
-        delta_ur -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
-        theta_ur += k*k*alpha;
-      }
-
-      if (pba->has_dr == _TRUE_) {
-        delta_dr += (-4.*a*H+a*pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]/pvecback[pba->index_bg_rho_dr])*alpha;
-
-        theta_dr += k*k*alpha;
-      }
-
-      if (pba->has_cdm == _TRUE_) {
-        delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
-        theta_cdm += k*k*alpha;
-      }
-
-      if (pba->has_ncdm == _TRUE_) {
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          /** - --> Do gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
-        }
-      }
-
-      if (pba->has_dcdm == _TRUE_) {
-        delta_dcdm += alpha*(-a*pba->Gamma_dcdm-3.*a*H);
-        theta_dcdm += k*k*alpha;
-      }
-
-      if (pba->has_scf == _TRUE_) {
-        delta_scf += alpha*(-3.0*H*(1.0+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]));
-        theta_scf += k*k*alpha;
-      }
+    if(pba->has_arbitrary_species == _TRUE_){
+      /** Fluid */
+      delta_arbitrary_species = ppw->delta_rho_arbitrary_species / pvecback[pba->index_bg_rho_arbitrary_species];
+      delta_p_arbitrary_species = ppw->delta_p_arbitrary_species / pvecback[pba->index_bg_rho_arbitrary_species];
+      theta_arbitrary_species = ppw->rho_plus_p_theta_arbitrary_species / (pvecback[pba->index_bg_rho_arbitrary_species]+pvecback[pba->index_bg_p_arbitrary_species]);
 
     }
+
+    /* converting synchronous variables to newtonian ones */
+    // if (ppt->gauge == synchronous) {
+    //
+    //   /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
+    //
+    //   delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
+    //   theta_g += k*k*alpha;
+    //
+    //   delta_b -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
+    //   theta_b += k*k*alpha;
+    //
+    //   if (pba->has_ur == _TRUE_) {
+    //     delta_ur -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
+    //     theta_ur += k*k*alpha;
+    //   }
+    //
+    //   if (pba->has_dr == _TRUE_) {
+    //     delta_dr += (-4.*a*H+a*pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]/pvecback[pba->index_bg_rho_dr])*alpha;
+    //
+    //     theta_dr += k*k*alpha;
+    //   }
+    //
+    //   if (pba->has_cdm == _TRUE_) {
+    //     delta_cdm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
+    //     theta_cdm += k*k*alpha;
+    //   }
+    //
+    //   if (pba->has_ncdm == _TRUE_) {
+    //     for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+    //       /** - --> Do gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
+    //     }
+    //   }
+    //
+    //   if (pba->has_dcdm == _TRUE_) {
+    //     delta_dcdm += alpha*(-a*pba->Gamma_dcdm-3.*a*H);
+    //     theta_dcdm += k*k*alpha;
+    //   }
+    //
+    //   if (pba->has_scf == _TRUE_) {
+    //     delta_scf += alpha*(-3.0*H*(1.0+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf]));
+    //     theta_scf += k*k*alpha;
+    //   }
+
+    // }
 
     //    fprintf(ppw->perturb_output_file," ");
     /** - --> Handle (re-)allocation */
@@ -6748,6 +6829,13 @@ int perturb_print_variables(double tau,
     /* Scalar field scf*/
     class_store_double(dataptr, delta_scf, pba->has_scf, storeidx);
     class_store_double(dataptr, theta_scf, pba->has_scf, storeidx);
+
+
+    /** arbitrary_species */
+    class_store_double(dataptr, delta_arbitrary_species, pba->has_arbitrary_species, storeidx);
+    class_store_double(dataptr, delta_p_arbitrary_species, pba->has_arbitrary_species, storeidx);
+    class_store_double(dataptr, theta_arbitrary_species, pba->has_arbitrary_species, storeidx);
+
 
     //fprintf(ppw->perturb_output_file,"\n");
 
@@ -6956,7 +7044,7 @@ int perturb_derivs(double tau,
 
   /* for use with fluid (fld): */
   double w_fld,dw_over_da_fld,w_prime_fld,integral_fld;
-
+  double w_arbitrary_species, w_prime_arbitrary_species;
   /* for use with non-cold dark matter (ncdm): */
   int index_q,n_ncdm,idx;
   double q,epsilon,dlnf0_dlnq,qk_div_epsilon;
@@ -7401,6 +7489,47 @@ int perturb_derivs(double tau,
       else {
         dy[pv->index_pt_Gamma_fld] = ppw->Gamma_prime_fld; /* Gamma variable of PPF formalism */
       }
+
+    }
+    if (pba->has_arbitrary_species == _TRUE_) {
+
+
+        /** - ----> factors w, w_prime, adiabatic sound speed ca2 (all three background-related),
+            plus actual sound speed in the fluid rest frame cs2 */
+
+
+        w_arbitrary_species = pvecback[pba->index_bg_w_arbitrary_species];
+        // w_arbitrary_species = 0;
+        w_prime_arbitrary_species = pvecback[pba->index_bg_dw_arbitrary_species];
+
+        // ca2 = 0;
+        if(pvecback[pba->index_bg_Omega_arbitrary_species] > ppt->Omega_arbitrary_species_security){
+          if(w_arbitrary_species == -1.0) ca2 = -1.0;
+          else ca2 = w_arbitrary_species - w_prime_arbitrary_species / 3. / (1.+w_arbitrary_species) / a_prime_over_a;
+        }
+        else{
+          //for simplicity, we assume that if the species is negligble it behaves like a cosmoligical constant
+          ca2=-1.0;
+        }
+        cs2 = pba->cs2_arbitrary_species;
+
+        // printf("a %e ca2 %e w %e\n",a,ca2,w_arbitrary_species);
+        /** - ----> fluid density */
+        //VP:instead of theta we evolve (1+w)*theta so some factors are absorbed
+        dy[pv->index_pt_delta_arbitrary_species] =
+          -(y[pv->index_pt_theta_arbitrary_species]+(1+w_arbitrary_species)*metric_continuity)
+          -3.*(cs2-w_arbitrary_species)*a_prime_over_a*y[pv->index_pt_delta_arbitrary_species]
+          -9.*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_arbitrary_species]/k2;
+
+        /** - ----> fluid velocity */
+        //VP:instead of theta we evolve (1+w)*theta so some factors are absorbed
+        dy[pv->index_pt_theta_arbitrary_species] = /* fluid velocity */
+        -(1.-3.*cs2)*a_prime_over_a*y[pv->index_pt_theta_arbitrary_species]
+        +cs2*k2*y[pv->index_pt_delta_arbitrary_species]
+        +(1+w_arbitrary_species)*metric_euler+ 3*a_prime_over_a*(w_arbitrary_species-ca2)*y[pv->index_pt_theta_arbitrary_species];
+
+
+
 
     }
 

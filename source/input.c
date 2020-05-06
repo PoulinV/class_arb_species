@@ -1132,7 +1132,7 @@ int input_read_parameters(
               pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
             }
             if(i==0)Omega_tot += pba->arbitrary_species_fraction_at_knot[0];//Omega_tot is defined today; will be used to satisfy closure equation
-            printf("%e %e %e\n",pba->arbitrary_species_at_knot[i*4],Omega_at_z,pba->arbitrary_species_fraction_at_knot[i]);
+            // printf("%e %e %e\n",pba->arbitrary_species_at_knot[i*4],Omega_at_z,pba->arbitrary_species_fraction_at_knot[i]);
           }
           for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.; //we set other entries to 0, they will be attributed in background.c
 
@@ -1140,6 +1140,45 @@ int input_read_parameters(
         // class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
         if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
 
+
+        class_read_double("cs2_arbitrary_species",pba->cs2_arbitrary_species);
+        class_read_double("Omega_arbitrary_species_security",ppt->Omega_arbitrary_species_security);
+        class_call(parser_read_string(pfc,
+                                      "arbitrary_species_has_perturbations",
+                                      &string1,
+                                      &flag1,
+                                      errmsg),
+                    errmsg,
+                    errmsg);
+
+        if (flag1 == _TRUE_){
+          if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+            ppt->arbitrary_species_has_perturbations = _TRUE_;
+          }
+          else {
+            ppt->arbitrary_species_has_perturbations = _FALSE_;
+          }
+        }else {
+          ppt->arbitrary_species_has_perturbations = _TRUE_;
+        }
+        class_call(parser_read_string(pfc,
+                                      "compute_CV_score",
+                                      &string1,
+                                      &flag1,
+                                      errmsg),
+                    errmsg,
+                    errmsg);
+
+        if (flag1 == _TRUE_){
+          if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+            pba->compute_CV_score = _TRUE_;
+          }
+          else {
+            pba->compute_CV_score = _FALSE_;
+          }
+        }else {
+          pba->compute_CV_score = _FALSE_;
+        }
         // printf("pba->arbitrary_species_density_at_knot[0] %e Omega_tot %e \n", pba->arbitrary_species_at_knot[0],Omega_tot);
 
   }
@@ -3716,6 +3755,9 @@ int input_default_params(
   pba->arbitrary_species_is_positive_definite = _FALSE_; //default: we allow for negative energy density.
   pba->output_H_at_z = _FALSE_; //output H at z for derived parameter.
   pba->arbitrary_species_is_DE_today = _FALSE_; //output H at z for derived parameter.
+  pba->cs2_arbitrary_species = 1;
+  ppt->Omega_arbitrary_species_security = 1e-6;
+
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->use_ppf = _TRUE_;

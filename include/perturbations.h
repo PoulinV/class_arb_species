@@ -243,6 +243,7 @@ struct perturbs
   short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
   short has_source_delta_dcdm; /**< do we need source for delta of DCDM? */
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
+  short has_source_delta_arbitrary_species;  /**< do we need source for delta of arbitrary species? */
   short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
@@ -254,6 +255,7 @@ struct perturbs
   short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
   short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
+  short has_source_theta_arbitrary_species;  /**< do we need source for theta of arbitrary species? */
   short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
   short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
@@ -282,6 +284,7 @@ struct perturbs
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
   int index_tp_delta_dcdm;/**< index value for delta of DCDM */
   int index_tp_delta_fld;  /**< index value for delta of dark energy */
+  int index_tp_delta_arbitrary_species;  /**< index value for delta of dark energy */
   int index_tp_delta_scf;  /**< index value for delta of scalar field */
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
@@ -296,6 +299,7 @@ struct perturbs
   int index_tp_theta_cdm;  /**< index value for theta of cold dark matter */
   int index_tp_theta_dcdm; /**< index value for theta of DCDM */
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
+  int index_tp_theta_arbitrary_species;  /**< index value for theta of dark energy */
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
   int index_tp_theta_ur;   /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_dr;   /**< index value for F1 of decay radiation */
@@ -380,6 +384,9 @@ struct perturbs
 
   //@}
 
+  short arbitrary_species_has_perturbations;
+  double Omega_arbitrary_species_security;
+
 };
 
 /**
@@ -409,6 +416,8 @@ struct perturb_vector
   int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density in true fluid case */
   int index_pt_theta_fld;  /**< dark energy velocity in true fluid case */
+  int index_pt_delta_arbitrary_species;  /**< dark energy density in true fluid case */
+  int index_pt_theta_arbitrary_species;  /**< dark energy velocity in true fluid case */
   int index_pt_Gamma_fld;  /**< unique dark energy dynamical variable in PPF case */
   int index_pt_phi_scf;  /**< scalar field density */
   int index_pt_phi_prime_scf;  /**< scalar field velocity */
@@ -446,6 +455,8 @@ struct perturb_vector
   int * used_in_sources; /**< boolean array specifying which
                             perturbations enter in the calculation of
                             source functions */
+
+
 
 };
 
@@ -523,6 +534,10 @@ struct perturb_workspace
   double S_fld;                /**< S quantity sourcing Gamma_prime evolution in PPF scheme (equivalent to eq. 15 in 0808.3125) */
   double Gamma_prime_fld;      /**< Gamma_prime in PPF scheme (equivalent to eq. 14 in 0808.3125) */
 
+  double delta_rho_arbitrary_species;        /**< density perturbation of arbitrary fluid*/
+  double delta_p_arbitrary_species;        /**< pressure perturbation of arbitrary fluid*/
+  double rho_plus_p_theta_arbitrary_species;        /**< velocity perturbation of arbitrary fluid*/
+
   FILE * perturb_output_file; /**< filepointer to output file*/
   int index_ikout;            /**< index for output k value (when k_output_values is set) */
 
@@ -561,6 +576,7 @@ struct perturb_workspace
   double * s_l;     /**< array of freestreaming coefficients \f$ s_l = \sqrt{1-K*(l^2-1)/k^2} \f$*/
 
   //@}
+
 
 };
 
