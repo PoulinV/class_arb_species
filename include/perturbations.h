@@ -386,6 +386,9 @@ struct perturbs
 
   short arbitrary_species_has_perturbations;
   double Omega_arbitrary_species_security;
+  double ca2_arbitrary_species_security;
+  double w_arbitrary_species_security_min;
+  double w_arbitrary_species_security_max;
 
 };
 

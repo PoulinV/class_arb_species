@@ -2522,8 +2522,8 @@ int perturb_prepare_output(struct background * pba,
     /** Write titles for all perturbations that we would like to print/store. */
     if (ppt->has_scalars == _TRUE_){
 
-      class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"a",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"delta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"shear_g",_TRUE_);
@@ -6721,6 +6721,7 @@ int perturb_print_variables(double tau,
       /** Fluid */
       delta_arbitrary_species = ppw->delta_rho_arbitrary_species / pvecback[pba->index_bg_rho_arbitrary_species];
       delta_p_arbitrary_species = ppw->delta_p_arbitrary_species / pvecback[pba->index_bg_rho_arbitrary_species];
+
       theta_arbitrary_species = ppw->rho_plus_p_theta_arbitrary_species / (pvecback[pba->index_bg_rho_arbitrary_species]+pvecback[pba->index_bg_p_arbitrary_species]);
 
     }
@@ -6788,8 +6789,9 @@ int perturb_print_variables(double tau,
       ppt->size_scalar_perturbation_data[ppw->index_ikout];
     ppt->size_scalar_perturbation_data[ppw->index_ikout] += ppt->number_of_scalar_titles;
 
-    class_store_double(dataptr, tau, _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
+
+    class_store_double(dataptr, tau, _TRUE_, storeidx);
     class_store_double(dataptr, delta_g, _TRUE_, storeidx);
     class_store_double(dataptr, theta_g, _TRUE_, storeidx);
     class_store_double(dataptr, shear_g, _TRUE_, storeidx);
@@ -7059,7 +7061,8 @@ int perturb_derivs(double tau,
 
   /* in case of DM-baryon interactions */
   double dmu_gcdm;
-
+  int i;
+  double logz_or_z;
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -7503,14 +7506,17 @@ int perturb_derivs(double tau,
         w_prime_arbitrary_species = pvecback[pba->index_bg_dw_arbitrary_species];
 
         // ca2 = 0;
-        if(pvecback[pba->index_bg_Omega_arbitrary_species] > ppt->Omega_arbitrary_species_security){
-          if(w_arbitrary_species == -1.0) ca2 = -1.0;
-          else ca2 = w_arbitrary_species - w_prime_arbitrary_species / 3. / (1.+w_arbitrary_species) / a_prime_over_a;
-        }
-        else{
-          //for simplicity, we assume that if the species is negligble it behaves like a cosmoligical constant
-          ca2=-1.0;
-        }
+        if(w_arbitrary_species == -1.0) ca2 = -1.0;
+        else ca2 = w_arbitrary_species - w_prime_arbitrary_species / 3. / (1.+w_arbitrary_species) / a_prime_over_a;
+        if(fabs(ca2) > ppt->ca2_arbitrary_species_security || isnan(ca2)) ca2 = w_arbitrary_species;
+        if(w_arbitrary_species > ppt->w_arbitrary_species_security_max) w_arbitrary_species = ppt->w_arbitrary_species_security_max;
+        if(w_arbitrary_species < ppt->w_arbitrary_species_security_min) w_arbitrary_species = ppt->w_arbitrary_species_security_min;
+        
+
+        // ca2 = w_arbitrary_species;
+        // w_arbitrary_species = -1.0;
+
+
         cs2 = pba->cs2_arbitrary_species;
 
         // printf("a %e ca2 %e w %e\n",a,ca2,w_arbitrary_species);
@@ -7528,6 +7534,8 @@ int perturb_derivs(double tau,
         +cs2*k2*y[pv->index_pt_delta_arbitrary_species]
         +(1+w_arbitrary_species)*metric_euler+ 3*a_prime_over_a*(w_arbitrary_species-ca2)*y[pv->index_pt_theta_arbitrary_species];
 
+
+        // printf("y[pv->index_pt_theta_arbitrary_species] %e w_arbitrary_species %e \n",y[pv->index_pt_theta_arbitrary_species],w_arbitrary_species);
 
 
 

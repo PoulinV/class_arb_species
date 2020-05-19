@@ -140,6 +140,8 @@ struct background
   double  arbitrary_species_CV_score;
   double  arbitrary_species_CV_max_z;
   double  arbitrary_species_CV_lambda;
+  double arbitrary_species_is_constant_above_z;
+  double arbitrary_species_is_constant_below_z;
   short arbitrary_species_is_positive_definite;
   short arbitrary_species_table_is_log;
   double arbitrary_species_logz_interpolation_above_z;

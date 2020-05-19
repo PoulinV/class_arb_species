@@ -593,6 +593,9 @@ int input_read_parameters(
   double PSR0,PSR1,PSR2,PSR3,PSR4;
   double HSR0,HSR1,HSR2,HSR3,HSR4;
 
+
+
+  int i_cosmological_constant;
   double z_max=0.;
   int bin;
   int input_verbose=0;
@@ -1106,6 +1109,7 @@ int input_read_parameters(
         class_read_double("arbitrary_species_CV_lambda",pba->arbitrary_species_CV_lambda);
         class_read_double("arbitrary_species_CV_max_z",pba->arbitrary_species_CV_max_z);
         pba->arbitrary_species_table_is_log = _FALSE_;
+
         class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
         class_read_list_of_doubles_or_default("arbitrary_species_density_at_knot",pba->arbitrary_species_density_at_knot,0.0,pba->arbitrary_species_number_of_knots);
         class_read_list_of_doubles_or_default("arbitrary_species_fraction_at_knot",pba->arbitrary_species_fraction_at_knot,0.0,pba->arbitrary_species_number_of_knots);
@@ -1113,12 +1117,10 @@ int input_read_parameters(
         for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
           //we attribute the first entry of the table: the density
           if(pba->arbitrary_species_density_at_knot[i]!= 0.0){
-            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_density_at_knot[i];
             if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
               pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_at_knot[i*4]);
               pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
             }
-            if(i==0)Omega_tot += pba->arbitrary_species_at_knot[0];
 
           }
           else if(pba->arbitrary_species_fraction_at_knot[i]!= 0.0){
@@ -1131,18 +1133,57 @@ int input_read_parameters(
               pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_at_knot[i*4]);
               pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
             }
-            if(i==0)Omega_tot += pba->arbitrary_species_fraction_at_knot[0];//Omega_tot is defined today; will be used to satisfy closure equation
             // printf("%e %e %e\n",pba->arbitrary_species_at_knot[i*4],Omega_at_z,pba->arbitrary_species_fraction_at_knot[i]);
           }
           for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.; //we set other entries to 0, they will be attributed in background.c
 
         }
-        // class_read_list_of_doubles_or_default_fill_column("arbitrary_species_density_at_knot",pba->arbitrary_species_at_knot,tmp_arbitrary_species,0,0.0,pba->arbitrary_species_number_of_knots,4); //the factor 4 stands for rho,drho,ddrho,dddrho
+        //here we catch whether the fluid is supposed to behave like a cosmological constant above or below some z:
+
+        class_read_double("arbitrary_species_is_constant_above_z",pba->arbitrary_species_is_constant_above_z);
+        class_read_double("arbitrary_species_is_constant_below_z",pba->arbitrary_species_is_constant_below_z);
+        class_test(pba->arbitrary_species_is_constant_above_z < 0 && pba->arbitrary_species_is_constant_below_z < 0,errmsg,"you have set arbitrary_species_is_constant_above_z or arbitrary_species_is_constant_below_z negative. Please correct your ini file.");
+        // printf("arbitrary_species_is_constant_above_z %e arbitrary_species_is_constant_below_z %e\n",arbitrary_species_is_constant_above_z,arbitrary_species_is_constant_below_z );
+        // if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+        //   if(pba->arbitrary_species_is_constant_above_z>0)pba->arbitrary_species_is_constant_above_z = log10(pba->arbitrary_species_is_constant_above_z+1);
+        // }
+        // if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+        //   if(pba->arbitrary_species_is_constant_below_z>0)pba->arbitrary_species_is_constant_below_z = log10(pba->arbitrary_species_is_constant_below_z+1);
+        // }
+
+        i_cosmological_constant = -1;
+        for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
+          if(pba->arbitrary_species_is_constant_above_z <= pba->arbitrary_species_redshift_at_knot[i] ){
+            if(i_cosmological_constant==-1)i_cosmological_constant = i;//we initialise the first time
+            // printf("found i_cosmological_constant %d z %d \n",i_cosmological_constant, arbitrary_species_is_constant_above_z);
+            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_at_knot[i_cosmological_constant*4];
+          }
+        }
+
+
+        i_cosmological_constant = -1;
+        for(i=pba->arbitrary_species_number_of_knots-1;i>-1;i--){
+          if(pba->arbitrary_species_is_constant_below_z >= pba->arbitrary_species_redshift_at_knot[i]){
+            if(i_cosmological_constant==-1)i_cosmological_constant = i;
+            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_at_knot[i_cosmological_constant*4];
+          }
+        }
+
+        //we add the density today to Omega_tot for closure equations
+        if(pba->arbitrary_species_interpolation_is_log == _TRUE_)Omega_tot += pow(10,pba->arbitrary_species_at_knot[0]);
+        else Omega_tot += pba->arbitrary_species_at_knot[0];
+
+        //for spline interpolation; needs extra table.
         if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
 
 
         class_read_double("cs2_arbitrary_species",pba->cs2_arbitrary_species);
+
+        //below that value the perturbations of the species are ignored to avoid bug sometimes.
         class_read_double("Omega_arbitrary_species_security",ppt->Omega_arbitrary_species_security);
+        class_read_double("ca2_arbitrary_species_security",ppt->ca2_arbitrary_species_security);
+        class_read_double("w_arbitrary_species_security_max",ppt->w_arbitrary_species_security_max);
+        class_read_double("w_arbitrary_species_security_min",ppt->w_arbitrary_species_security_min);
         class_call(parser_read_string(pfc,
                                       "arbitrary_species_has_perturbations",
                                       &string1,
@@ -1161,6 +1202,8 @@ int input_read_parameters(
         }else {
           ppt->arbitrary_species_has_perturbations = _TRUE_;
         }
+
+        //useful in MCMC but old, to be improved.
         class_call(parser_read_string(pfc,
                                       "compute_CV_score",
                                       &string1,
@@ -1258,8 +1301,16 @@ int input_read_parameters(
   */
   if(pba->arbitrary_species_is_DE_today == _TRUE_){
     //after having adjusted Omega0_lambda to satisfy the closure relation, we absorb the difference in our arbitrary species.
-    pba->arbitrary_species_at_knot[0]+=pba->Omega0_lambda;
+
+    if(pba->arbitrary_species_interpolation_is_log == _TRUE_)pba->arbitrary_species_at_knot[0]=log10(pba->Omega0_lambda+pow(10,pba->arbitrary_species_at_knot[0]));
+    else pba->arbitrary_species_at_knot[0]+= pba->Omega0_lambda;
     pba->Omega0_lambda = 0.;
+    //we have to update with the value of Omega0_lambda
+    for(i=pba->arbitrary_species_number_of_knots-1;i>-1;i--){
+      if(pba->arbitrary_species_is_constant_below_z >= pba->arbitrary_species_redshift_at_knot[i]){
+        pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_at_knot[0];
+      }
+    }
   }
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
@@ -3745,6 +3796,8 @@ int input_default_params(
   pba->K = 0.;
   pba->sgnK = 0;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+
+  /**VP: default value for the arb species module */
   pba->arbitrary_species_number_of_knots = 0;
   pba->arbitrary_species_logz_interpolation_above_z = 1e30; //arbitrarily large number, no log interpolation in the default case.
   pba->arbitrary_species_CV_lambda = 1;
@@ -3757,6 +3810,11 @@ int input_default_params(
   pba->arbitrary_species_is_DE_today = _FALSE_; //output H at z for derived parameter.
   pba->cs2_arbitrary_species = 1;
   ppt->Omega_arbitrary_species_security = 1e-6;
+  ppt->ca2_arbitrary_species_security = 1e2;
+  ppt->w_arbitrary_species_security_max = 1e30;
+  ppt->w_arbitrary_species_security_min = -1e30;
+  pba->arbitrary_species_is_constant_below_z = -1;
+  pba->arbitrary_species_is_constant_above_z = 1e30;
 
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;

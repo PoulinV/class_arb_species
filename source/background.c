@@ -269,12 +269,12 @@ int background_functions(
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
   /* scale factor */
-  double a;
+  double a, z;
   /* scalar field quantities */
   double phi, phi_prime;
-  double dwda;
   /* arbitrary species quantities */
   double rho_arbitrary_species, drho_arbitrary_species, ddrho_arbitrary_species, Omega0_arb_species;
+  double dwda,da,rho_arbitrary_species_old,drhodz;
   /** - initialize local variables */
   a = pvecback_B[pba->index_bi_a];
   rho_tot = 0.;
@@ -282,7 +282,7 @@ int background_functions(
   rho_r=0.;
   rho_m=0.;
   a_rel = a / pba->a_today;
-
+  z = 1/a_rel -1;
   class_test(a_rel <= 0.,
              pba->error_message,
              "a = %e instead of strictly positive",a_rel);
@@ -427,18 +427,35 @@ int background_functions(
 
   if (pba->has_arbitrary_species == _TRUE_){
 
+    if(a_rel>1e-14)da = 1e-1*a_rel;
+    else da = 0;
+    
+    if(z>=pba->arbitrary_species_is_constant_above_z){
+      interpolate_arbitrary_species_at_a(pba,1/(1+pba->arbitrary_species_is_constant_above_z),&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
+      rho_arbitrary_species_old = rho_arbitrary_species;
+    }else if(z<=pba->arbitrary_species_is_constant_below_z){
+      interpolate_arbitrary_species_at_a(pba,1/(1+pba->arbitrary_species_is_constant_below_z),&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
+      rho_arbitrary_species_old = rho_arbitrary_species;
+    }else{
+      interpolate_arbitrary_species_at_a(pba,a_rel-da,&rho_arbitrary_species_old,&drho_arbitrary_species,&ddrho_arbitrary_species);
+      interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
+    }
 
-    interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
-    // printf("z %e rho %e \n", 1./a_rel-1, rho_arbitrary_species);
+    if(da!=0)drhodz=a_rel*a_rel*(rho_arbitrary_species-rho_arbitrary_species_old)/da;
+    else drhodz= 0;
     pvecback[pba->index_bg_rho_arbitrary_species] = rho_arbitrary_species * pow(pba->H0,2);
+    pvecback[pba->index_bg_w_arbitrary_species] = -1*drhodz/3/rho_arbitrary_species/a_rel-1;
+    pvecback[pba->index_bg_dw_arbitrary_species] = 0;//dummy
+
     rho_tot += pvecback[pba->index_bg_rho_arbitrary_species];
     class_test(rho_tot < 0.,
                pba->error_message,
                "rho_tot = %e instead of strictly positive",rho_tot);
-  if(pba->arbitrary_species_interpolation_is_log == _TRUE_) Omega0_arb_species =pow(10,pba->arbitrary_species_at_knot[0]);
-  else Omega0_arb_species = pba->arbitrary_species_at_knot[0];
-   if(a_rel < 1) pvecback[pba->index_bg_w_arbitrary_species] = -log(sqrt(pvecback[pba->index_bg_rho_arbitrary_species]*pvecback[pba->index_bg_rho_arbitrary_species])/Omega0_arb_species/pow(pba->H0,2))/log(a_rel)/3 -1;
-   else pvecback[pba->index_bg_w_arbitrary_species] = -1.0;
+  //
+  // if(pba->arbitrary_species_interpolation_is_log == _TRUE_) Omega0_arb_species =pow(10,pba->arbitrary_species_at_knot[0]);
+  // else Omega0_arb_species = pba->arbitrary_species_at_knot[0];
+   // if(a_rel < 1) pvecback[pba->index_bg_w_arbitrary_species] = -log(sqrt(pvecback[pba->index_bg_rho_arbitrary_species]*pvecback[pba->index_bg_rho_arbitrary_species])/Omega0_arb_species/pow(pba->H0,2))/log(a_rel)/3 -1;
+
 
 
 
@@ -467,7 +484,9 @@ int background_functions(
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
   pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
   //
-  // if(pba->has_arbitrary_species == _TRUE_){
+
+
+
   //   //OLD STUFF; will be calculated numerically
   //   //Once H is known we compute dwdtau for perturbations
   //   // if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
@@ -2602,7 +2621,7 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)p_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)w_arbitrary_species",pba->has_arbitrary_species);
-  class_store_columntitle(titles,"(.)dw_arbitrary_species",pba->has_arbitrary_species);
+  class_store_columntitle(titles,"(.)wprime_arbitrary_species",pba->has_arbitrary_species);
   class_store_columntitle(titles,"(.)Omega_arbitrary_species",pba->has_arbitrary_species);
   if (pba->has_ncdm == _TRUE_){
     for (n=0; n<pba->N_ncdm; n++){
