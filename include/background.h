@@ -16,7 +16,7 @@ enum spatial_curvature {flat,open,closed};
 
 /** list of possible parametrisations of the DE equation of state */
 
-enum equation_of_state {CLP,EDE};
+enum equation_of_state {CLP,EDE,ARB};
 
 /**
  * All background parameters and evolution that other modules need to know.
@@ -70,6 +70,7 @@ struct background
   double H20;
   short output_H_at_z;
   short arbitrary_species_is_DE_today;
+  short arbitrary_species_is_present;
   double Omega0_g; /**< \f$ \Omega_{0 \gamma} \f$: photons */
 
   double T_cmb; /**< \f$ T_{cmb} \f$: current CMB temperature in Kelvins */
@@ -150,6 +151,7 @@ struct background
   // double * arbitrary_species_dd_density_at_knot;
   double * arbitrary_species_redshift_at_knot;
   double * arbitrary_species_fraction_at_knot;
+  double * arbitrary_species_w_at_knot;
   int arbitrary_species_number_of_knots;
 
   int N_ncdm;                            /**< Number of distinguishable ncdm species */
@@ -607,13 +609,16 @@ extern "C" {
                                           double /*upper limit*/ b,
                                           size_t max_steps,
                                           double /*desired accuracy*/ acc,
+                                          int integrand_mode,
                                               double *int_ddrho);
 int simpson_integrate_arb_species(struct background * pba,
                                          double /*lower limit*/ a,
                                          double /*upper limit*/ b,
                                          size_t max_steps,
+                                         int integrand_mode,
                                          double *int_ddrho);
   double integrand_arb_species(struct background * pba,
+                                     int integrand_mode,
                                      double a);
 #ifdef __cplusplus
 }
@@ -640,7 +645,8 @@ int simpson_integrate_arb_species(struct background * pba,
 #define _eV_over_ergs_ 6.24150647996e11 /**< eV/J */
 #define _joules_over_ergs_ 1e-7 /**< eV/J */
 #define _Sun_mass_over_kg_ 1.98855e30 /**< M_sun in kg */
-
+#define _INTEGRAL_IS_W_ 1
+#define _INTEGRAL_IS_DDRHO_ 0
 /* parameters entering in Stefan-Boltzmann constant sigma_B */
 #define _k_B_ 1.3806504e-23
 #define _h_P_ 6.62606896e-34

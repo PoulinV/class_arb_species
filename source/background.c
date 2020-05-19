@@ -429,7 +429,7 @@ int background_functions(
 
     if(a_rel>1e-14)da = 1e-1*a_rel;
     else da = 0;
-    
+
     if(z>=pba->arbitrary_species_is_constant_above_z){
       interpolate_arbitrary_species_at_a(pba,1/(1+pba->arbitrary_species_is_constant_above_z),&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
       rho_arbitrary_species_old = rho_arbitrary_species;
@@ -535,9 +535,9 @@ int background_functions(
 int interpolate_arbitrary_species_at_a(
                           struct background * pba,
                           double a,
-                          double *rho,
-                          double *drho,
-                          double *ddrho
+                          double *rho_or_w,
+                          double *drho_or_w,
+                          double *ddrho_or_w
                           ) {
 
   int last_index;
@@ -569,18 +569,7 @@ int interpolate_arbitrary_species_at_a(
 
   if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
     z_or_log1pz = log10(z+1);
-    // class_call(array_interpolate_linear(pba->arbitrary_species_redshift_at_knot,
-    //                                  pba->arbitrary_species_number_of_knots,
-    //                                  pba->arbitrary_species_at_knot,
-    //                                  4,
-    //                                  log10(z+1),
-    //                                  &last_index,
-    //                                  result,
-    //                                  4,
-    //                                  pba->error_message),
-    //         pba->error_message,
-    //         pba->error_message);
-  }else{
+    }else{
     z_or_log1pz = z;
   }
 
@@ -613,25 +602,36 @@ int interpolate_arbitrary_species_at_a(
     }
 
   if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
-    *rho = pow(10,result[0]);
-    *drho = result[1]*pow(10,result[0])/(1+z);//result[1] = d(log10(rho))/dlogz=drho/dz*(1+z)/rho
-    *ddrho = result[2];//nb: never used, but this is dd(log10(rho))
+    *rho_or_w = pow(10,result[0]);
+    *drho_or_w = result[1]*pow(10,result[0])/(1+z);//result[1] = d(log10(rho_or_w))/dlogz=drho_or_w/dz*(1+z)/rho_or_w
+    *ddrho_or_w = result[2];//nb: never used, but this is dd(log10(rho_or_w))
   }else{
-    *rho = result[0];
-    *drho = result[1];
-    *ddrho = result[2];
+    *rho_or_w = result[0];
+    *drho_or_w = result[1];
+    *ddrho_or_w = result[2];
   }
 
 
-  // printf("z %e rho %e drho %e ddrho %e dddrho %e \n",1+z,*rho,*drho,result[2],result[3]);
+  // printf("z %e rho_or_w %e drho_or_w %e ddrho_or_w %e dddrho_or_w %e \n",1+z,*rho_or_w,*drho_or_w,result[2],result[3]);
   return _SUCCESS_;
 }
+
+
+
+
 double integrand_arb_species(struct background * pba,
+                             int integrand_mode,
                                    double a){
 
- double rho,drho,ddrho; //temporary storing quantities
- interpolate_arbitrary_species_at_a(pba,a,&rho,&drho,&ddrho);
- return ddrho*ddrho;
+ double rho_or_w,drho_or_w,ddrho_or_w,result; //temporary storing quantities
+ if(integrand_mode == _INTEGRAL_IS_W_){
+   interpolate_arbitrary_species_at_a(pba,a,&rho_or_w,&drho_or_w,&ddrho_or_w);
+   result = (1+rho_or_w)/a;
+ }else{
+   interpolate_arbitrary_species_at_a(pba,a,&rho_or_w,&drho_or_w,&ddrho_or_w);
+   result = ddrho_or_w*ddrho_or_w;
+ }
+ return result;
 
 }
 int romberg_integrate_arbitrary_species(struct background * pba,
@@ -639,7 +639,8 @@ int romberg_integrate_arbitrary_species(struct background * pba,
                                          double /*upper limit*/ b,
                                          size_t max_steps,
                                          double /*desired accuracy*/ acc,
-                                         double *int_ddrho){
+                                         int integrand_mode,
+                                         double *int_ddrho_or_w){
    double R1[max_steps], R2[max_steps]; //buffers
    double *Rp = &R1[0], *Rc = &R2[0]; //Rp is previous row, Rc is current row
    double h = (b-a); //step size
@@ -647,7 +648,7 @@ int romberg_integrate_arbitrary_species(struct background * pba,
    size_t i;
    size_t j;
 
-   Rp[0] = (integrand_arb_species(pba,xa)+integrand_arb_species(pba,xb))*h*.5; //first trapezoidal step
+   Rp[0] = (integrand_arb_species(pba,integrand_mode,xa)+integrand_arb_species(pba,integrand_mode,xb))*h*.5; //first trapezoidal step
    // dump_row(0, Rp);
 
    for( i = 1; i < max_steps; ++i){
@@ -657,7 +658,7 @@ int romberg_integrate_arbitrary_species(struct background * pba,
       for(j = 1; j <= ep; ++j){
          x = a+(2*j-1)*h;
          // printf("is_log %d x %e\n", is_log, x);
-         c += integrand_arb_species(pba,x);
+         c += integrand_arb_species(pba,integrand_mode,x);
          // printf("c %e x %e j %d ep %d \n", c, x,j,ep);
       }
       Rc[0] = h*c + .5*Rp[0]; //R(i,0)
@@ -671,7 +672,7 @@ int romberg_integrate_arbitrary_species(struct background * pba,
       // dump_row(i, Rc);
 
       if(i > 1 && fabs(Rp[i-1]-Rc[i]) < acc){
-         *int_ddrho = Rc[i-1];
+         *int_ddrho_or_w = Rc[i-1];
          return _SUCCESS_;
       }
 
@@ -681,7 +682,7 @@ int romberg_integrate_arbitrary_species(struct background * pba,
       Rc = rt;
    }
    // printf("Rp[max_steps-1] %e\n",Rp[max_steps-1]);
-   *int_ddrho = Rp[max_steps-1]; //return our best guess
+   *int_ddrho_or_w = Rp[max_steps-1]; //return our best guess
 
    return _SUCCESS_;
 }
@@ -712,6 +713,7 @@ int background_w_fld(
   double dOmega_ede_over_da = 0.;
   double d2Omega_ede_over_da2 = 0.;
   double a_eq, Omega_r, Omega_m;
+  double result,dresult,ddresult;
 
   /** - first, define the function w(a) */
   switch (pba->fluid_equation_of_state) {
@@ -741,6 +743,11 @@ int background_w_fld(
     // w_ede(a) taken from eq. (11) in 1706.00730
     *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
     break;
+
+  case ARB:
+    interpolate_arbitrary_species_at_a(pba,a,&result,&dresult,&ddresult);
+    *w_fld = result;
+    break;
   }
 
 
@@ -760,6 +767,11 @@ int background_w_fld(
       + dOmega_ede_over_da*dOmega_ede_over_da*a/3./(1.-Omega_ede)/(1.-Omega_ede)/Omega_ede
       + a_eq/3./(a+a_eq)/(a+a_eq);
     break;
+
+  case ARB:
+    //do nothing! we will take a numerical derivative later.
+    *dw_over_da_fld = 0;
+    break;
   }
 
   /** - finally, give the analytic solution of the following integral:
@@ -772,8 +784,16 @@ int background_w_fld(
         implement a numerical calculation of this integral only for
         a=a_ini, using for instance Romberg integration. It should be
         fast, simple, and accurate enough. */
-  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
-
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+  case EDE:
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    break;
+  case ARB:
+      //do nothing! we will numerical integrate later.
+      *integral_fld = 0;
+      break;
+  }
   /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
       far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
@@ -921,6 +941,7 @@ int background_init(
                                                 a2,
                                                 30,
                                                 1e-4,
+                                                _INTEGRAL_IS_DDRHO_,
                                                 &int_ddrho);
         // simpson_integrate_arb_species(pba,pba->arbitrary_species_redshift_at_knot[i],
         //                                         pba->arbitrary_species_redshift_at_knot[i+1],
@@ -976,17 +997,18 @@ int simpson_integrate_arb_species(struct background * pba,
                                          double /*lower limit*/ a,
                                          double /*upper limit*/ b,
                                          size_t max_steps,
+                                         int integrand_mode,
                                          double *int_ddrho){
    double h = (b-a)/max_steps, s;
    int i=1;
-   s = (integrand_arb_species(pba,a)+integrand_arb_species(pba,b));
+   s = (integrand_arb_species(pba,integrand_mode,a)+integrand_arb_species(pba,integrand_mode,b));
    while(i<max_steps){
-     s += 4 * integrand_arb_species(pba,(a + i * h));
+     s += 4 * integrand_arb_species(pba,integrand_mode,(a + i * h));
      i+=2;
    }
    i=2;
    while(i<max_steps-1){
-     s += 2 * integrand_arb_species(pba,(a + i * h));
+     s += 2 * integrand_arb_species(pba,integrand_mode,(a + i * h));
      i+=2;
    }
 
@@ -1155,7 +1177,7 @@ int background_indices(
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
 
-  if(pba->arbitrary_species_number_of_knots != 0){
+  if(pba->arbitrary_species_is_present == _TRUE_){
     arbitrary_species_init(pba);
     pba->has_arbitrary_species = _TRUE_;
   }
@@ -2429,14 +2451,24 @@ int background_initial_conditions(
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
     /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
-    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
-
     /* Note: for complicated w_fld(a) functions with no simple
     analytic integral, this is the place were you should compute
     numerically the simple 1d integral [int_{a_ini}^{a_0} 3
     [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
     calling background_w_fld */
-
+    if(pba->fluid_equation_of_state == ARB){
+      romberg_integrate_arbitrary_species(pba,a,
+                                              pba->a_today,
+                                              30,
+                                              1e-4,
+                                              _INTEGRAL_IS_W_,
+                                              &integral_fld);
+      integral_fld*=3;
+      printf("integral_fld %e\n", integral_fld);
+      integral_fld = 0;
+    }else{
+      class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
+    }
     /* rho_fld at initial time */
     pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
 

@@ -989,7 +989,9 @@ int input_read_parameters(
     }
   }
   Omega_tot += pba->Omega0_ncdm_tot;
-  /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
+
+
+  /** - VP: Do we want to output H at various z? */
   class_call(parser_read_string(pfc,
                                 "output_H_at_z",
                                 &(string1),
@@ -1011,35 +1013,36 @@ int input_read_parameters(
       }
     }
   }
-  /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
-  class_call(parser_read_string(pfc,
-                                "arbitrary_species_is_DE_today",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pba->arbitrary_species_is_DE_today = _TRUE_;
-    }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        pba->arbitrary_species_is_DE_today = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_is_DE_today'",string1);
-      }
-    }
-  }
 
 
+  /**VP: read parameters related to arbitrary species */
   class_read_double("arbitrary_species_number_of_knots",pba->arbitrary_species_number_of_knots);
   double *tmp_arbitrary_species;
   if(pba->arbitrary_species_number_of_knots > 0){
+      pba->arbitrary_species_is_present = _TRUE_;//useful for later
 
+      /** - Add the contribution from a user-specified arbitrary species to Omega_tot */
+      class_call(parser_read_string(pfc,
+                                    "arbitrary_species_is_DE_today",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
 
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+          pba->arbitrary_species_is_DE_today = _TRUE_;
+        }
+        else {
+          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+            pba->arbitrary_species_is_DE_today = _FALSE_;
+          }
+          else {
+            class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_is_DE_today'",string1);
+          }
+        }
+      }
         class_call(parser_read_string(pfc,
                                       "arbitrary_species_interpolation_is_linear",
                                       &(string1),
@@ -1117,13 +1120,18 @@ int input_read_parameters(
         for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
           //we attribute the first entry of the table: the density
           if(pba->arbitrary_species_density_at_knot[i]!= 0.0){
+            //did the user give the density?
             if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
-              pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_at_knot[i*4]);
+              pba->arbitrary_species_at_knot[i*4]=log10(pba->arbitrary_species_density_at_knot[i]);
               pba->arbitrary_species_redshift_at_knot[i]=log10(pba->arbitrary_species_redshift_at_knot[i]+1);
+            }
+            else{
+              pba->arbitrary_species_at_knot[i*4]=(pba->arbitrary_species_density_at_knot[i]);
             }
 
           }
           else if(pba->arbitrary_species_fraction_at_knot[i]!= 0.0){
+            //did the user give the fractional contribution?
             class_test(pba->arbitrary_species_fraction_at_knot[i]>1.0,errmsg,"you cannot have fraction_arb_species > 1");
             Omega_lambda = 1 - (pba->Omega0_b+pba->Omega0_cdm + pba->Omega0_g+pba->Omega0_ur + pba->Omega0_ncdm_tot + pba->arbitrary_species_fraction_at_knot[0]);
             Omega0_rad = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_)*(1+3.046*7./8.*pow(4./11.,4./3.));
@@ -1135,6 +1143,8 @@ int input_read_parameters(
             }
             // printf("%e %e %e\n",pba->arbitrary_species_at_knot[i*4],Omega_at_z,pba->arbitrary_species_fraction_at_knot[i]);
           }
+
+
           for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.; //we set other entries to 0, they will be attributed in background.c
 
         }
@@ -1352,6 +1362,10 @@ int input_read_parameters(
         pba->fluid_equation_of_state = EDE;
       }
 
+      else if ((strstr(string1,"w_is_arbitrary") != NULL) || (strstr(string1,"w_is_arbitrary") != NULL)){
+        pba->fluid_equation_of_state = ARB;
+      }
+
       else {
         class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
       }
@@ -1367,6 +1381,68 @@ int input_read_parameters(
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("Omega_EDE",pba->Omega_EDE);
       class_read_double("cs2_fld",pba->cs2_fld);
+    }
+
+    if(pba->fluid_equation_of_state == ARB){
+      class_read_double("arbitrary_species_w_number_of_knots",pba->arbitrary_species_number_of_knots);
+      class_test(pba->arbitrary_species_number_of_knots<=0,errmsg,"it's weird, you have chosen pba->fluid_equation_of_state == w_is_arbitrary the number of knots is 0 or negative! Fix your ini file");
+      class_read_list_of_doubles_or_default("arbitrary_species_redshift_at_knot",pba->arbitrary_species_redshift_at_knot,0.0,pba->arbitrary_species_number_of_knots);
+      class_read_list_of_doubles_or_default("arbitrary_species_w_at_knot",pba->arbitrary_species_w_at_knot,0.0,pba->arbitrary_species_number_of_knots);
+      class_alloc(pba->arbitrary_species_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message); // 4 entries: 0 = density, 1 = derivative  2 = double derivative 3 = triple derivative (required for spline interpolation later on)
+      for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
+        //we attribute the first entry of the table: the equation of state
+            pba->arbitrary_species_at_knot[i*4]=pba->arbitrary_species_w_at_knot[i];
+        for(n = 1; n < 4 ; n++)pba->arbitrary_species_at_knot[i*4+n]=0.; //we set other entries to 0, they will be attributed in background.c
+
+      }
+      //here we catch whether the fluid is supposed to behave like a cosmological constant above or below some z:
+
+      class_read_double("arbitrary_species_is_constant_above_z",pba->arbitrary_species_is_constant_above_z);
+      class_read_double("arbitrary_species_is_constant_below_z",pba->arbitrary_species_is_constant_below_z);
+      class_test(pba->arbitrary_species_is_constant_above_z < 0 && pba->arbitrary_species_is_constant_below_z < 0,errmsg,"you have set arbitrary_species_is_constant_above_z or arbitrary_species_is_constant_below_z negative. Please correct your ini file.");
+      // printf("arbitrary_species_is_constant_above_z %e arbitrary_species_is_constant_below_z %e\n",arbitrary_species_is_constant_above_z,arbitrary_species_is_constant_below_z );
+      // if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+      //   if(pba->arbitrary_species_is_constant_above_z>0)pba->arbitrary_species_is_constant_above_z = log10(pba->arbitrary_species_is_constant_above_z+1);
+      // }
+      // if(pba->arbitrary_species_interpolation_is_log == _TRUE_){
+      //   if(pba->arbitrary_species_is_constant_below_z>0)pba->arbitrary_species_is_constant_below_z = log10(pba->arbitrary_species_is_constant_below_z+1);
+      // }
+
+      for(i=0;i<pba->arbitrary_species_number_of_knots;i++){
+        if(pba->arbitrary_species_is_constant_above_z <= pba->arbitrary_species_redshift_at_knot[i] ){
+          pba->arbitrary_species_at_knot[i*4]=-1;
+        }
+        if(pba->arbitrary_species_is_constant_below_z >= pba->arbitrary_species_redshift_at_knot[i] ){
+          pba->arbitrary_species_at_knot[i*4]=-1;
+        }
+      }
+      //are we interpolating lin or spline?
+      class_call(parser_read_string(pfc,
+                                    "arbitrary_species_interpolation_is_linear",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+          pba->arbitrary_species_interpolation_is_linear = _TRUE_;
+        }
+        else {
+          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+            pba->arbitrary_species_interpolation_is_linear = _FALSE_;
+          }
+          else {
+            class_stop(errmsg,"incomprehensible input '%s' for the field 'arbitrary_species_interpolation_is_linear'",string1);
+          }
+        }
+      }
+      //for spline interpolation; needs extra table.
+      if(pba->arbitrary_species_interpolation_is_linear == _FALSE_)class_alloc(pba->arbitrary_species_dd_at_knot,sizeof(double)*4*pba->arbitrary_species_number_of_knots,pba->error_message);
+
+      class_read_double("cs2_fld",pba->cs2_fld);
+
     }
   }
 
