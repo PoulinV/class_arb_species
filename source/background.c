@@ -427,48 +427,25 @@ int background_functions(
 
   if (pba->has_arbitrary_species == _TRUE_){
 
-    if(a_rel>1e-14)da = 1e-1*a_rel;
-    else da = 0;
 
     if(z>=pba->arbitrary_species_is_constant_above_z){
       interpolate_arbitrary_species_at_a(pba,1/(1+pba->arbitrary_species_is_constant_above_z),&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
-      rho_arbitrary_species_old = rho_arbitrary_species;
     }else if(z<=pba->arbitrary_species_is_constant_below_z){
       interpolate_arbitrary_species_at_a(pba,1/(1+pba->arbitrary_species_is_constant_below_z),&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
-      rho_arbitrary_species_old = rho_arbitrary_species;
     }else{
-      interpolate_arbitrary_species_at_a(pba,a_rel-da,&rho_arbitrary_species_old,&drho_arbitrary_species,&ddrho_arbitrary_species);
       interpolate_arbitrary_species_at_a(pba,a_rel,&rho_arbitrary_species,&drho_arbitrary_species,&ddrho_arbitrary_species);
     }
 
-    if(da!=0)drhodz=a_rel*a_rel*(rho_arbitrary_species-rho_arbitrary_species_old)/da;
-    else drhodz= 0;
     pvecback[pba->index_bg_rho_arbitrary_species] = rho_arbitrary_species * pow(pba->H0,2);
-    pvecback[pba->index_bg_w_arbitrary_species] = -1*drhodz/3/rho_arbitrary_species/a_rel-1;
-    pvecback[pba->index_bg_dw_arbitrary_species] = 0;//dummy
+    pvecback[pba->index_bg_w_arbitrary_species] = 0;//dummy, will be updated later.
+    pvecback[pba->index_bg_dw_arbitrary_species] = 0;//dummy, will be updated later.
 
     rho_tot += pvecback[pba->index_bg_rho_arbitrary_species];
     class_test(rho_tot < 0.,
                pba->error_message,
                "rho_tot = %e instead of strictly positive",rho_tot);
-  //
-  // if(pba->arbitrary_species_interpolation_is_log == _TRUE_) Omega0_arb_species =pow(10,pba->arbitrary_species_at_knot[0]);
-  // else Omega0_arb_species = pba->arbitrary_species_at_knot[0];
-   // if(a_rel < 1) pvecback[pba->index_bg_w_arbitrary_species] = -log(sqrt(pvecback[pba->index_bg_rho_arbitrary_species]*pvecback[pba->index_bg_rho_arbitrary_species])/Omega0_arb_species/pow(pba->H0,2))/log(a_rel)/3 -1;
-
-
-
-
-   // printf("pvecback[pba->index_bg_rho_arbitrary_species]/Omega0_arb_species %e a_rel %e w %e\n",pvecback[pba->index_bg_rho_arbitrary_species]/Omega0_arb_species,a_rel,pvecback[pba->index_bg_w_arbitrary_species]);
-   // p_tot += a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species]; //assume w slowly varying function of a... can we improve?
-
-   // pvecback[pba->index_bg_p_arbitrary_species] = a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species];
-   pvecback[pba->index_bg_p_arbitrary_species] =pvecback[pba->index_bg_w_arbitrary_species]*pvecback[pba->index_bg_rho_arbitrary_species];
-   p_tot += pvecback[pba->index_bg_p_arbitrary_species];
-
-   // printf("z %e rho %e p %e ptot %e \n", 1./a_rel-1, pvecback[pba->index_bg_rho_arbitrary_species],a_rel/3*drho_arbitrary_species* pow(pba->H0,2)-pvecback[pba->index_bg_rho_arbitrary_species],p_tot);
-
-   // pvecback[pba->index_bg_w_arbitrary_species] = pvecback[pba->index_bg_p_arbitrary_species]/pvecback[pba->index_bg_rho_arbitrary_species];
+   pvecback[pba->index_bg_p_arbitrary_species] = 0;//dummy, will be updated later.
+   p_tot += 0;//dummy, will be updated later.
    if(pba->arbitrary_species_is_positive_definite == _TRUE_){
      class_test(pvecback[pba->index_bg_rho_arbitrary_species] < 0.,
                 pba->error_message,
@@ -484,22 +461,6 @@ int background_functions(
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
   pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
   //
-
-
-
-  //   //OLD STUFF; will be calculated numerically
-  //   //Once H is known we compute dwdtau for perturbations
-  //   // if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
-  //   // if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
-  //   if(a_rel < 1) dwda = (drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel-(pvecback[pba->index_bg_w_arbitrary_species]+1))/(a_rel*log(a_rel));
-  //   else dwda = 0;
-  //   pvecback[pba->index_bg_dw_arbitrary_species] =a_rel*a_rel*pvecback[pba->index_bg_H]*dwda;
-  //   // printf("A %e B %e a_rel %e log(a_rel) %e \n",drho_arbitrary_species* pow(pba->H0,2)/3/pvecback[pba->index_bg_rho_arbitrary_species]/a_rel, (pvecback[pba->index_bg_w_arbitrary_species]+1),a_rel,log(a_rel));
-  //   // printf("aprime %e dwda %e pvecback[pba->index_bg_rho_arbitrary_species] %e drho_arbitrary_species* pow(pba->H0,2) %e 1+w %e final %e \n",a_rel*a_rel*pvecback[pba->index_bg_H],dwda,pvecback[pba->index_bg_rho_arbitrary_species],drho_arbitrary_species* pow(pba->H0,2),pvecback[pba->index_bg_w_arbitrary_species]+1,pvecback[pba->index_bg_dw_arbitrary_species]);
-  //   // pvecback[pba->index_bg_dw_arbitrary_species] =drho_arbitrary_species;
-  //    // pvecback[pba->index_bg_dw_arbitrary_species] = 0;
-  // }
-
 
   /** - compute derivative of H with respect to conformal time */
   pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
@@ -1242,6 +1203,8 @@ int background_indices(
 
   /* - index for arbitrary species */
   class_define_index(pba->index_bg_rho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_drho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
+  class_define_index(pba->index_bg_ddrho_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_p_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_w_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
   class_define_index(pba->index_bg_dw_arbitrary_species,pba->has_arbitrary_species,index_bg,1);
@@ -1986,7 +1949,7 @@ int background_solve(
   int last_index=0;
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
-
+  double drhodt,rho_arbitrary_species,a_rel;
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   bpaw.pvecback = pvecback;
@@ -2201,8 +2164,39 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-
+/** VP: Compute a few relevant quantities for arb species */
 if(pba->has_arbitrary_species == _TRUE_){
+  //we need w, p and Hprime for Later
+  class_call(array_spline_table_line_to_line(pba->tau_table,
+                                            pba->bt_size,
+                                            pba->background_table,
+                                            pba->bg_size,
+                                            pba->index_bg_rho_arbitrary_species,
+                                            pba->index_bg_ddrho_arbitrary_species,
+                                             _SPLINE_EST_DERIV_,
+                                             pba->error_message),
+             pba->error_message,
+             pba->error_message);
+
+  class_call(array_derive_spline_table_line_to_line(pba->tau_table,
+                                                    pba->bt_size,
+                                                    pba->background_table,
+                                                    pba->bg_size,
+                                                    pba->index_bg_rho_arbitrary_species,
+                                                    pba->index_bg_ddrho_arbitrary_species,
+                                                    pba->index_bg_drho_arbitrary_species,
+                                                    pba->error_message),
+             pba->error_message,
+             pba->error_message);
+
+    for (i=0; i < pba->bt_size; i++) {
+      drhodt = pba->background_table[i*pba->bg_size+pba->index_bg_drho_arbitrary_species]/a_rel;
+      rho_arbitrary_species =  pba->background_table[i*pba->bg_size+pba->index_bg_rho_arbitrary_species];
+      a_rel =  pba->background_table[i*pba->bg_size+pba->index_bg_a];
+      pba->background_table[i*pba->bg_size+pba->index_bg_w_arbitrary_species]=-1*drhodt/3/rho_arbitrary_species/pba->background_table[i*pba->bg_size+pba->index_bg_H]-1;
+      pba->background_table[i*pba->bg_size+pba->index_bg_p_arbitrary_species] =pba->background_table[i*pba->bg_size+pba->index_bg_w_arbitrary_species]*pba->background_table[i*pba->bg_size+pba->index_bg_rho_arbitrary_species];
+      pba->background_table[i*pba->bg_size+pba->index_bg_H_prime] += - (3./2.) * (pba->background_table[i*pba->bg_size+pba->index_bg_p_arbitrary_species]) * a_rel; //add the missing pressure contribution from the arbitrary species
+    }
   //we need dwdtau for later.
   class_call(array_spline_table_line_to_line(pba->tau_table,
                                             pba->bt_size,

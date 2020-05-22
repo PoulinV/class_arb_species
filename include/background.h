@@ -254,6 +254,8 @@ struct background
 
   /** modification by VP to add an arbitrary species whose energy density is specified by the user at several knot */
   int index_bg_rho_arbitrary_species;
+  int index_bg_drho_arbitrary_species;
+  int index_bg_ddrho_arbitrary_species;
   int index_bg_p_arbitrary_species;
   int index_bg_w_arbitrary_species;
   int index_bg_dw_arbitrary_species;

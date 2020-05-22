@@ -7506,12 +7506,13 @@ int perturb_derivs(double tau,
         w_prime_arbitrary_species = pvecback[pba->index_bg_dw_arbitrary_species];
 
         // ca2 = 0;
-        if(w_arbitrary_species == -1.0) ca2 = -1.0;
+        // if(w_arbitrary_species == -1.0) ca2 = -1.0;
+        if(w_arbitrary_species == -1.0) ca2 = -7./3.; 
         else ca2 = w_arbitrary_species - w_prime_arbitrary_species / 3. / (1.+w_arbitrary_species) / a_prime_over_a;
         if(fabs(ca2) > ppt->ca2_arbitrary_species_security || isnan(ca2)) ca2 = w_arbitrary_species;
         if(w_arbitrary_species > ppt->w_arbitrary_species_security_max) w_arbitrary_species = ppt->w_arbitrary_species_security_max;
         if(w_arbitrary_species < ppt->w_arbitrary_species_security_min) w_arbitrary_species = ppt->w_arbitrary_species_security_min;
-        
+
 
         // ca2 = w_arbitrary_species;
         // w_arbitrary_species = -1.0;
